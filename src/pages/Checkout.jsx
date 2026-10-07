@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAppContext } from "../context/Context";
@@ -26,6 +26,64 @@ function Checkout() {
         state: "",
         pincode: ""
     });
+
+    /*
+     * Load saved default address
+     */
+    useEffect(() => {
+        const fetchDefaultAddress = async () => {
+            if (!currentUser?.userId) {
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `${API_URL}/address/user/${currentUser.userId}`
+                );
+
+                const result = await response.json();
+
+                if (!response.ok || !result.status) {
+                    console.error(
+                        "Failed to load saved addresses:",
+                        result.message
+                    );
+                    return;
+                }
+
+                const addresses = result.data || [];
+
+                /*
+                 * First use the address marked as default.
+                 * If no default exists, use the first saved address.
+                 */
+                const defaultAddress =
+                    addresses.find(
+                        (item) => item.isDefault === true
+                    ) || addresses[0];
+
+                if (!defaultAddress) {
+                    return;
+                }
+
+                setFormData({
+                    fullName: defaultAddress.fullName || "",
+                    phone: defaultAddress.phone || "",
+                    address: defaultAddress.address || "",
+                    city: defaultAddress.city || "",
+                    state: defaultAddress.state || "",
+                    pincode: defaultAddress.pincode || ""
+                });
+            } catch (error) {
+                console.error(
+                    "Error loading default address:",
+                    error
+                );
+            }
+        };
+
+        fetchDefaultAddress();
+    }, [currentUser]);
 
     const [paymentMethod, setPaymentMethod] = useState(
         "Cash on Delivery"
@@ -141,21 +199,22 @@ function Checkout() {
             ].join(", ");
 
             const response = await fetch(
-               `${API_URL}/order/create`,
-    {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`
-        },
-        body: JSON.stringify({
-            userId: currentUser.userId,
-            shippingAddress: shippingAddress,
-            paymentMethod: paymentMethod
-        })
-    }
-);
-        
+                `${API_URL}/order/create`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem(
+                            "token"
+                        )}`
+                    },
+                    body: JSON.stringify({
+                        userId: currentUser.userId,
+                        shippingAddress: shippingAddress,
+                        paymentMethod: paymentMethod
+                    })
+                }
+            );
 
             const result = await response.json();
 
@@ -167,7 +226,7 @@ function Checkout() {
             if (!response.ok || !result.status) {
                 throw new Error(
                     result.message ||
-                    "Failed to create order"
+                        "Failed to create order"
                 );
             }
 
@@ -260,20 +319,34 @@ function Checkout() {
                 onSubmit={handleSubmit}
             >
 
+                {/* ================= DELIVERY DETAILS ================= */}
+
                 <div className="checkout-section delivery-section">
 
-                    <div className="section-heading">
+                    <div className="section-heading delivery-heading">
+
                         <span className="section-number">
                             01
                         </span>
 
-                        <div>
+                        <div className="delivery-heading-content">
                             <h2>Delivery Details</h2>
 
                             <p>
                                 Enter your delivery information
                             </p>
                         </div>
+
+                        <button
+                            type="button"
+                            className="update-address-button"
+                            onClick={() =>
+                                navigate("/addresses")
+                            }
+                        >
+                            Update Address
+                        </button>
+
                     </div>
 
                     <div className="checkout-form">
@@ -281,6 +354,7 @@ function Checkout() {
                         <div className="form-row">
 
                             <div className="form-group">
+
                                 <label>
                                     Full Name
                                 </label>
@@ -298,9 +372,11 @@ function Checkout() {
                                         {errors.fullName}
                                     </p>
                                 )}
+
                             </div>
 
                             <div className="form-group">
+
                                 <label>
                                     Phone Number
                                 </label>
@@ -319,11 +395,13 @@ function Checkout() {
                                         {errors.phone}
                                     </p>
                                 )}
+
                             </div>
 
                         </div>
 
                         <div className="form-group">
+
                             <label>
                                 Address
                             </label>
@@ -340,11 +418,13 @@ function Checkout() {
                                     {errors.address}
                                 </p>
                             )}
+
                         </div>
 
                         <div className="form-row">
 
                             <div className="form-group">
+
                                 <label>
                                     City
                                 </label>
@@ -362,9 +442,11 @@ function Checkout() {
                                         {errors.city}
                                     </p>
                                 )}
+
                             </div>
 
                             <div className="form-group">
+
                                 <label>
                                     State
                                 </label>
@@ -382,6 +464,7 @@ function Checkout() {
                                         {errors.state}
                                     </p>
                                 )}
+
                             </div>
 
                         </div>
@@ -410,11 +493,15 @@ function Checkout() {
                         </div>
 
                     </div>
+
                 </div>
+
+                {/* ================= PAYMENT ================= */}
 
                 <div className="checkout-section payment-section">
 
                     <div className="section-heading">
+
                         <span className="section-number">
                             02
                         </span>
@@ -426,6 +513,7 @@ function Checkout() {
                                 Select your preferred payment method
                             </p>
                         </div>
+
                     </div>
 
                     <div className="payment-options">
@@ -438,6 +526,7 @@ function Checkout() {
                                     : ""
                             }`}
                         >
+
                             <input
                                 type="radio"
                                 name="paymentMethod"
@@ -452,6 +541,7 @@ function Checkout() {
                             />
 
                             <div className="payment-option-content">
+
                                 <div className="payment-title">
                                     Cash on Delivery
                                 </div>
@@ -459,7 +549,9 @@ function Checkout() {
                                 <div className="payment-description">
                                     Pay when your order arrives
                                 </div>
+
                             </div>
+
                         </label>
 
                         <label
@@ -469,6 +561,7 @@ function Checkout() {
                                     : ""
                             }`}
                         >
+
                             <input
                                 type="radio"
                                 name="paymentMethod"
@@ -482,6 +575,7 @@ function Checkout() {
                             />
 
                             <div className="payment-option-content">
+
                                 <div className="payment-title">
                                     UPI
                                 </div>
@@ -489,7 +583,9 @@ function Checkout() {
                                 <div className="payment-description">
                                     Pay securely using UPI
                                 </div>
+
                             </div>
+
                         </label>
 
                         <label
@@ -499,6 +595,7 @@ function Checkout() {
                                     : ""
                             }`}
                         >
+
                             <input
                                 type="radio"
                                 name="paymentMethod"
@@ -512,6 +609,7 @@ function Checkout() {
                             />
 
                             <div className="payment-option-content">
+
                                 <div className="payment-title">
                                     Credit / Debit Card
                                 </div>
@@ -519,7 +617,9 @@ function Checkout() {
                                 <div className="payment-description">
                                     Pay securely using your card
                                 </div>
+
                             </div>
+
                         </label>
 
                     </div>
@@ -531,6 +631,8 @@ function Checkout() {
                     )}
 
                 </div>
+
+                {/* ================= REVIEW ORDER ================= */}
 
                 <div className="checkout-section review-section">
 
@@ -601,6 +703,7 @@ function Checkout() {
                     <div className="review-summary">
 
                         <div className="summary-row">
+
                             <span>
                                 Subtotal
                             </span>
@@ -608,9 +711,11 @@ function Checkout() {
                             <span>
                                 ₹{cartTotal}
                             </span>
+
                         </div>
 
                         <div className="summary-row">
+
                             <span>
                                 Delivery
                             </span>
@@ -618,11 +723,13 @@ function Checkout() {
                             <span className="free-text">
                                 FREE
                             </span>
+
                         </div>
 
                         <div className="summary-divider"></div>
 
                         <div className="summary-total">
+
                             <span>
                                 Grand Total
                             </span>
@@ -630,6 +737,7 @@ function Checkout() {
                             <strong>
                                 ₹{cartTotal}
                             </strong>
+
                         </div>
 
                     </div>

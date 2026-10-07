@@ -32,7 +32,9 @@ function Orders() {
                     `${API_URL}/order/user/${currentUser.userId}`,
                     {
                         headers: {
-                            Authorization: `Bearer ${localStorage.getItem("token")}`
+                            Authorization: `Bearer ${localStorage.getItem(
+                                "token"
+                            )}`
                         }
                     }
                 );
@@ -57,10 +59,15 @@ function Orders() {
         fetchOrders();
     }, [isLoggedIn, currentUser]);
 
+    /* =========================================
+       NOT LOGGED IN
+    ========================================= */
+
     if (!isLoggedIn) {
         return (
             <div className="orders-page">
                 <div className="orders-container">
+
                     <h1>My Orders</h1>
 
                     <div className="orders-error">
@@ -68,35 +75,45 @@ function Orders() {
                     </div>
 
                     <button
-                        onClick={() =>
-                            navigate("/login")
-                        }
+                        onClick={() => navigate("/login")}
                     >
                         Login
                     </button>
+
                 </div>
             </div>
         );
     }
+
+    /* =========================================
+       LOADING
+    ========================================= */
 
     if (loading) {
         return (
             <div className="orders-page">
                 <div className="orders-container">
+
                     <h1>My Orders</h1>
 
                     <div className="orders-message">
                         Loading orders...
                     </div>
+
                 </div>
             </div>
         );
     }
 
+    /* =========================================
+       ERROR
+    ========================================= */
+
     if (error) {
         return (
             <div className="orders-page">
                 <div className="orders-container">
+
                     <h1>My Orders</h1>
 
                     <div className="orders-error">
@@ -110,18 +127,29 @@ function Orders() {
                     >
                         Try Again
                     </button>
+
                 </div>
             </div>
         );
     }
 
+    /* =========================================
+       EMPTY ORDERS
+    ========================================= */
+
     if (orders.length === 0) {
         return (
             <div className="orders-page">
                 <div className="orders-container">
+
                     <h1>My Orders</h1>
 
                     <div className="empty-orders">
+
+                        <div className="empty-orders-icon">
+                            📦
+                        </div>
+
                         <h2>No Orders Found</h2>
 
                         <p>
@@ -136,16 +164,25 @@ function Orders() {
                         >
                             Continue Shopping
                         </button>
+
                     </div>
+
                 </div>
             </div>
         );
     }
 
+    /* =========================================
+       ORDERS
+    ========================================= */
+
     return (
         <div className="orders-page">
+
             <div className="orders-container">
+
                 <div className="orders-header">
+
                     <div>
                         <h1>My Orders</h1>
 
@@ -164,17 +201,22 @@ function Orders() {
                     >
                         Continue Shopping
                     </button>
+
                 </div>
 
                 <div className="orders-list">
+
                     {orders.map((order) => (
                         <OrderCard
                             key={order._id}
                             order={order}
                         />
                     ))}
+
                 </div>
+
             </div>
+
         </div>
     );
 }

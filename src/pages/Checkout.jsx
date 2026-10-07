@@ -141,7 +141,7 @@ function Checkout() {
             ].join(", ");
 
             const response = await fetch(
-                `${API_URL}/order`,
+               `${API_URL}/order/create`,
     {
         method: "POST",
         headers: {

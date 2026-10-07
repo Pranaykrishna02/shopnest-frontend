@@ -17,7 +17,7 @@ function AdminProducts() {
             setError("");
 
             const response = await fetch(
-                `${API_URL}/product`
+                 `${API_URL}/product/list`
             );
 
             const result = await response.json();
@@ -48,7 +48,7 @@ function AdminProducts() {
             setSuccessMessage("");
 
             const response = await fetch(
-                `${API_URL}/product`,
+                `${API_URL}/product/create`,
                 {
                     method: "POST",
                     headers: {

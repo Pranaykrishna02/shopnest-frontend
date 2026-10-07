@@ -1,21 +1,90 @@
-import { useEffect, useMemo, useState } from "react";
-
-import {useNavigate,useSearchParams} from "react-router-dom";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import {
+    useNavigate,
+    useSearchParams
+} from "react-router-dom";
 
 const API_URL = process.env.REACT_APP_API_URL;
+
+const getDateKey = (date) => {
+    if (!date) return "";
+
+    const value = new Date(date);
+
+    return [
+        value.getFullYear(),
+        String(value.getMonth() + 1).padStart(2, "0"),
+        String(value.getDate()).padStart(2, "0")
+    ].join("-");
+};
+
+const isToday = (date) =>
+    getDateKey(date) === getDateKey(new Date());
+
+const isYesterday = (date) => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    return getDateKey(date) === getDateKey(yesterday);
+};
+
+const isThisWeek = (date) => {
+    if (!date) return false;
+
+    const orderDate = new Date(date);
+    const today = new Date();
+    const startOfWeek = new Date(today);
+
+    const day = startOfWeek.getDay();
+    const difference = day === 0 ? 6 : day - 1;
+
+    startOfWeek.setDate(
+        startOfWeek.getDate() - difference
+    );
+
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    return orderDate >= startOfWeek;
+};
+
+const isThisMonth = (date) => {
+    if (!date) return false;
+
+    const orderDate = new Date(date);
+    const today = new Date();
+
+    return (
+        orderDate.getFullYear() === today.getFullYear() &&
+        orderDate.getMonth() === today.getMonth()
+    );
+};
+
+const formatDateHeading = (date) => {
+    if (!date) return "UNKNOWN DATE";
+    if (isToday(date)) return "TODAY";
+    if (isYesterday(date)) return "YESTERDAY";
+
+    return new Date(date)
+        .toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric"
+        })
+        .toUpperCase();
+};
 
 function AdminOrders() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
-    const selectedStatus =
-        searchParams.get("status");
+    const selectedStatus = searchParams.get("status");
+    const selectedRequest = searchParams.get("request");
 
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [search, setSearch] = useState("");
-
+    const [dateFilter, setDateFilter] = useState("all");
     const [actionLoading, setActionLoading] = useState(null);
 
     useEffect(() => {
@@ -35,8 +104,7 @@ function AdminOrders() {
                     }
                 );
 
-                const result =
-                    await response.json();
+                const result = await response.json();
 
                 if (
                     !response.ok ||
@@ -58,12 +126,6 @@ function AdminOrders() {
 
         fetchOrders();
     }, []);
-
-    /*
-     * =====================================================
-     * REQUEST COUNTS
-     * =====================================================
-     */
 
     const requestCounts = useMemo(() => {
         let cancelled = 0;
@@ -102,12 +164,6 @@ function AdminOrders() {
         };
     }, [orders]);
 
-    /*
-     * =====================================================
-     * ORDER COUNTS
-     * =====================================================
-     */
-
     const counts = useMemo(() => {
         return {
             all: orders.length,
@@ -132,66 +188,144 @@ function AdminOrders() {
         };
     }, [orders]);
 
-    /*
-     * =====================================================
-     * FILTER ORDERS
-     * =====================================================
-     */
-
     const filteredOrders = useMemo(() => {
-        return orders.filter((order) => {
-            const statusMatch =
-                !selectedStatus ||
-                order.status ===
-                    selectedStatus;
+        const searchValue =
+            search.trim().toLowerCase();
 
-            const searchValue =
-                search
-                    .trim()
-                    .toLowerCase();
+        return [...orders]
+            .filter((order) => {
+                const statusMatch =
+                    !selectedStatus ||
+                    order.status ===
+                        selectedStatus;
 
-            if (!searchValue) {
-                return statusMatch;
-            }
+                const requestMatch =
+                    !selectedRequest ||
+                    order.items?.some(
+                        (item) => {
+                            if (
+                                selectedRequest ===
+                                "cancelled"
+                            ) {
+                                return (
+                                    item.cancelStatus ===
+                                    "cancelled"
+                                );
+                            }
 
-            const orderId =
-                order._id?.toLowerCase() ||
-                "";
+                            if (
+                                selectedRequest ===
+                                "return"
+                            ) {
+                                return (
+                                    item.returnStatus ===
+                                    "return_requested"
+                                );
+                            }
 
-            const customerName =
-                order.userId?.name?.toLowerCase() ||
-                "";
+                            if (
+                                selectedRequest ===
+                                "exchange"
+                            ) {
+                                return (
+                                    item.exchangeStatus ===
+                                    "exchange_requested"
+                                );
+                            }
 
-            const customerEmail =
-                order.userId?.email?.toLowerCase() ||
-                "";
+                            return false;
+                        }
+                    );
 
-            return (
-                statusMatch &&
-                (
-                    orderId.includes(
-                        searchValue
-                    ) ||
-                    customerName.includes(
-                        searchValue
-                    ) ||
-                    customerEmail.includes(
-                        searchValue
+                let dateMatch = true;
+
+                if (
+                    dateFilter ===
+                    "today"
+                ) {
+                    dateMatch =
+                        isToday(
+                            order.createdAt
+                        );
+                } else if (
+                    dateFilter ===
+                    "yesterday"
+                ) {
+                    dateMatch =
+                        isYesterday(
+                            order.createdAt
+                        );
+                } else if (
+                    dateFilter ===
+                    "week"
+                ) {
+                    dateMatch =
+                        isThisWeek(
+                            order.createdAt
+                        );
+                } else if (
+                    dateFilter ===
+                    "month"
+                ) {
+                    dateMatch =
+                        isThisMonth(
+                            order.createdAt
+                        );
+                }
+
+                if (!searchValue) {
+                    return (
+                        statusMatch &&
+                        requestMatch &&
+                        dateMatch
+                    );
+                }
+
+                const orderId =
+                    order._id?.toLowerCase() ||
+                    "";
+
+                const customerName =
+                    order.userId?.name?.toLowerCase() ||
+                    "";
+
+                const customerEmail =
+                    order.userId?.email?.toLowerCase() ||
+                    "";
+
+                return (
+                    statusMatch &&
+                    requestMatch &&
+                    dateMatch &&
+                    (
+                        orderId.includes(
+                            searchValue
+                        ) ||
+                        customerName.includes(
+                            searchValue
+                        ) ||
+                        customerEmail.includes(
+                            searchValue
+                        )
                     )
-                )
+                );
+            })
+            .sort(
+                (a, b) =>
+                    new Date(
+                        b.createdAt || 0
+                    ) -
+                    new Date(
+                        a.createdAt || 0
+                    )
             );
-        });
     }, [
         orders,
         selectedStatus,
-        search
+        selectedRequest,
+        search,
+        dateFilter
     ]);
-
-    /*
-     * =====================================================
-     * FILTER CHANGE
-     * =====================================================
-     */
 
     const changeFilter = (status) => {
         if (status === "all") {
@@ -203,12 +337,6 @@ function AdminOrders() {
             `/admin/orders?status=${status}`
         );
     };
-
-    /*
-     * =====================================================
-     * FORMAT TIME
-     * =====================================================
-     */
 
     const formatTime = (date) => {
         if (!date) {
@@ -226,23 +354,11 @@ function AdminOrders() {
         );
     };
 
-    /*
-     * =====================================================
-     * FORMAT AMOUNT
-     * =====================================================
-     */
-
     const formatAmount = (amount) => {
         return Number(
             amount || 0
         ).toLocaleString("en-IN");
     };
-
-    /*
-     * =====================================================
-     * HANDLE RETURN / EXCHANGE
-     * =====================================================
-     */
 
     const handleRequestAction = async (
         orderId,
@@ -294,19 +410,20 @@ function AdminOrders() {
                 return;
             }
 
-            const response = await fetch(
-                `${API_URL}${endpoint}`,
-                {
-                    method: "PUT",
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
-                        "Content-Type":
-                            "application/json"
+            const response =
+                await fetch(
+                    `${API_URL}${endpoint}`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem(
+                                "token"
+                            )}`,
+                            "Content-Type":
+                                "application/json"
+                        }
                     }
-                }
-            );
+                );
 
             const result =
                 await response.json();
@@ -321,69 +438,67 @@ function AdminOrders() {
                 );
             }
 
-            /*
-             * Update the order inside the page
-             * without refreshing the browser.
-             */
+            setOrders(
+                (previousOrders) =>
+                    previousOrders.map(
+                        (order) => {
+                            if (
+                                order._id !==
+                                orderId
+                            ) {
+                                return order;
+                            }
 
-            setOrders((previousOrders) =>
-                previousOrders.map(
-                    (order) => {
-                        if (
-                            order._id !==
-                            orderId
-                        ) {
-                            return order;
-                        }
+                            return {
+                                ...order,
 
-                        return {
-                            ...order,
-                            items:
-                                order.items?.map(
-                                    (item) => {
-                                        if (
-                                            item._id !==
-                                            itemId
-                                        ) {
+                                items:
+                                    order.items?.map(
+                                        (item) => {
+                                            if (
+                                                item._id !==
+                                                itemId
+                                            ) {
+                                                return item;
+                                            }
+
+                                            if (
+                                                type ===
+                                                "return"
+                                            ) {
+                                                return {
+                                                    ...item,
+
+                                                    returnStatus:
+                                                        action ===
+                                                        "approve"
+                                                            ? "return_approved"
+                                                            : "return_rejected"
+                                                };
+                                            }
+
+                                            if (
+                                                type ===
+                                                "exchange"
+                                            ) {
+                                                return {
+                                                    ...item,
+
+                                                    exchangeStatus:
+                                                        action ===
+                                                        "approve"
+                                                            ? "exchange_approved"
+                                                            : "exchange_rejected"
+                                                };
+                                            }
+
                                             return item;
                                         }
-
-                                        if (
-                                            type ===
-                                            "return"
-                                        ) {
-                                            return {
-                                                ...item,
-                                                returnStatus:
-                                                    action ===
-                                                    "approve"
-                                                        ? "return_approved"
-                                                        : "return_rejected"
-                                            };
-                                        }
-
-                                        if (
-                                            type ===
-                                            "exchange"
-                                        ) {
-                                            return {
-                                                ...item,
-                                                exchangeStatus:
-                                                    action ===
-                                                    "approve"
-                                                        ? "exchange_approved"
-                                                        : "exchange_rejected"
-                                            };
-                                        }
-
-                                        return item;
-                                    }
-                                )
-                        };
-                    }
-                )
+                                    )
+                            };
+                        }
+                    )
             );
-
         } catch (error) {
             alert(error.message);
         } finally {
@@ -391,55 +506,47 @@ function AdminOrders() {
         }
     };
 
-    /*
-     * =====================================================
-     * GET ITEM REQUESTS
-     * =====================================================
-     */
-
-    const getItemRequests = (order) => {
+    const getItemRequests = (
+        order
+    ) => {
         const requests = [];
 
-        order.items?.forEach((item) => {
-            if (
-                item.cancelStatus ===
-                "cancelled"
-            ) {
-                requests.push({
-                    type: "cancelled",
-                    item
-                });
-            }
+        order.items?.forEach(
+            (item) => {
+                if (
+                    item.cancelStatus ===
+                    "cancelled"
+                ) {
+                    requests.push({
+                        type: "cancelled",
+                        item
+                    });
+                }
 
-            if (
-                item.returnStatus ===
-                "return_requested"
-            ) {
-                requests.push({
-                    type: "return",
-                    item
-                });
-            }
+                if (
+                    item.returnStatus ===
+                    "return_requested"
+                ) {
+                    requests.push({
+                        type: "return",
+                        item
+                    });
+                }
 
-            if (
-                item.exchangeStatus ===
-                "exchange_requested"
-            ) {
-                requests.push({
-                    type: "exchange",
-                    item
-                });
+                if (
+                    item.exchangeStatus ===
+                    "exchange_requested"
+                ) {
+                    requests.push({
+                        type: "exchange",
+                        item
+                    });
+                }
             }
-        });
+        );
 
         return requests;
     };
-
-    /*
-     * =====================================================
-     * LOADING
-     * =====================================================
-     */
 
     if (loading) {
         return (
@@ -450,12 +557,6 @@ function AdminOrders() {
             </div>
         );
     }
-
-    /*
-     * =====================================================
-     * ERROR
-     * =====================================================
-     */
 
     if (error) {
         return (
@@ -476,19 +577,9 @@ function AdminOrders() {
         );
     }
 
-    /*
-     * =====================================================
-     * MAIN UI
-     * =====================================================
-     */
-
     return (
         <div className="exact-admin-page exact-admin-orders-page">
-
-            {/* PAGE HEADING */}
-
             <div className="exact-admin-orders-heading">
-
                 <div>
                     <h1>
                         Admin Orders
@@ -507,67 +598,113 @@ function AdminOrders() {
                 >
                     ← Back to Dashboard
                 </button>
-
             </div>
 
-            {/* REQUEST SUMMARY */}
-
             <div className="admin-request-summary">
-
-                <div className="admin-request-card cancelled">
+                <button
+                    type="button"
+                    className={`admin-request-card cancelled ${
+                        selectedRequest ===
+                        "cancelled"
+                            ? "active-request"
+                            : ""
+                    }`}
+                    onClick={() =>
+                        navigate(
+                            selectedRequest ===
+                                "cancelled"
+                                ? "/admin/orders"
+                                : "/admin/orders?request=cancelled"
+                        )
+                    }
+                >
                     <span className="admin-request-icon">
                         ✕
                     </span>
 
                     <div>
                         <strong>
-                            {requestCounts.cancelled}
+                            {
+                                requestCounts.cancelled
+                            }
                         </strong>
 
                         <span>
                             Cancelled Products
                         </span>
                     </div>
-                </div>
+                </button>
 
-                <div className="admin-request-card return">
+                <button
+                    type="button"
+                    className={`admin-request-card return ${
+                        selectedRequest ===
+                        "return"
+                            ? "active-request"
+                            : ""
+                    }`}
+                    onClick={() =>
+                        navigate(
+                            selectedRequest ===
+                                "return"
+                                ? "/admin/orders"
+                                : "/admin/orders?request=return"
+                        )
+                    }
+                >
                     <span className="admin-request-icon">
                         ↩
                     </span>
 
                     <div>
                         <strong>
-                            {requestCounts.returnRequests}
+                            {
+                                requestCounts.returnRequests
+                            }
                         </strong>
 
                         <span>
                             Return Requests
                         </span>
                     </div>
-                </div>
+                </button>
 
-                <div className="admin-request-card exchange">
+                <button
+                    type="button"
+                    className={`admin-request-card exchange ${
+                        selectedRequest ===
+                        "exchange"
+                            ? "active-request"
+                            : ""
+                    }`}
+                    onClick={() =>
+                        navigate(
+                            selectedRequest ===
+                                "exchange"
+                                ? "/admin/orders"
+                                : "/admin/orders?request=exchange"
+                        )
+                    }
+                >
                     <span className="admin-request-icon">
                         ⇄
                     </span>
 
                     <div>
                         <strong>
-                            {requestCounts.exchangeRequests}
+                            {
+                                requestCounts.exchangeRequests
+                            }
                         </strong>
 
                         <span>
                             Exchange Requests
                         </span>
                     </div>
-                </div>
-
+                </button>
             </div>
 
-            {/* ORDER STATUS FILTERS */}
-
             <div className="exact-admin-order-filters">
-
                 <button
                     className={
                         !selectedStatus
@@ -642,13 +779,94 @@ function AdminOrders() {
                         {counts.delivered}
                     </span>
                 </button>
-
             </div>
 
-            {/* SEARCH */}
+            <div className="admin-date-filters">
+                <button
+                    type="button"
+                    className={
+                        dateFilter ===
+                        "all"
+                            ? "active"
+                            : ""
+                    }
+                    onClick={() =>
+                        setDateFilter("all")
+                    }
+                >
+                    All Dates
+                </button>
+
+                <button
+                    type="button"
+                    className={
+                        dateFilter ===
+                        "today"
+                            ? "active"
+                            : ""
+                    }
+                    onClick={() =>
+                        setDateFilter(
+                            "today"
+                        )
+                    }
+                >
+                    Today
+                </button>
+
+                <button
+                    type="button"
+                    className={
+                        dateFilter ===
+                        "yesterday"
+                            ? "active"
+                            : ""
+                    }
+                    onClick={() =>
+                        setDateFilter(
+                            "yesterday"
+                        )
+                    }
+                >
+                    Yesterday
+                </button>
+
+                <button
+                    type="button"
+                    className={
+                        dateFilter ===
+                        "week"
+                            ? "active"
+                            : ""
+                    }
+                    onClick={() =>
+                        setDateFilter(
+                            "week"
+                        )
+                    }
+                >
+                    This Week
+                </button>
+
+                <button
+                    type="button"
+                    className={
+                        dateFilter ===
+                        "month"
+                            ? "active"
+                            : ""
+                    }
+                    onClick={() =>
+                        setDateFilter(
+                            "month"
+                        )
+                    }
+                >
+                    This Month
+                </button>
+            </div>
 
             <div className="exact-admin-search">
-
                 <span>
                     ⌕
                 </span>
@@ -674,15 +892,11 @@ function AdminOrders() {
                 >
                     🔍
                 </button>
-
             </div>
 
-            {/* ORDERS */}
-
-            {filteredOrders.length === 0 ? (
-
+            {filteredOrders.length ===
+            0 ? (
                 <div className="exact-admin-empty-panel">
-
                     <h2>
                         No Orders Found
                     </h2>
@@ -690,15 +904,33 @@ function AdminOrders() {
                     <p>
                         There are no orders matching your current filter.
                     </p>
-
                 </div>
-
             ) : (
-
                 <div className="exact-admin-orders-list">
-
                     {filteredOrders.map(
-                        (order) => {
+                        (
+                            order,
+                            index
+                        ) => {
+                            const currentDateKey =
+                                getDateKey(
+                                    order.createdAt
+                                );
+
+                            const previousDateKey =
+                                index > 0
+                                    ? getDateKey(
+                                          filteredOrders[
+                                              index -
+                                                  1
+                                          ]
+                                              .createdAt
+                                      )
+                                    : null;
+
+                            const showDateHeading =
+                                currentDateKey !==
+                                previousDateKey;
 
                             const itemRequests =
                                 getItemRequests(
@@ -706,331 +938,293 @@ function AdminOrders() {
                                 );
 
                             return (
-                                <div
-                                    className="exact-admin-order-row"
-                                    key={order._id}
+                                <Fragment
+                                    key={
+                                        order._id
+                                    }
                                 >
-
-                                    <div className="exact-admin-order-main">
-
-                                        {/* ORDER NUMBER */}
-
-                                        <div className="exact-admin-order-number">
-
-                                            <strong>
-                                                #
-                                                {order._id.slice(
-                                                    -8
-                                                )}
-                                            </strong>
-
+                                    {showDateHeading && (
+                                        <div className="admin-date-heading">
                                             <span>
-                                                {order.createdAt
-                                                    ? new Date(
-                                                          order.createdAt
-                                                      ).toLocaleDateString(
-                                                          "en-IN",
-                                                          {
-                                                              day: "2-digit",
-                                                              month: "short",
-                                                              year: "numeric"
-                                                          }
-                                                      )
-                                                    : "N/A"}
-
-                                                ,{" "}
-
-                                                {formatTime(
+                                                {formatDateHeading(
                                                     order.createdAt
                                                 )}
                                             </span>
-
-                                        </div>
-
-                                        {/* CUSTOMER */}
-
-                                        <div className="exact-admin-customer">
-
-                                            <div className="exact-admin-customer-avatar">
-
-                                                {(
-                                                    order
-                                                        .userId
-                                                        ?.name ||
-                                                    "U"
-                                                )
-                                                    .charAt(0)
-                                                    .toUpperCase()}
-
-                                            </div>
-
-                                            <div>
-
-                                                <strong>
-                                                    {
-                                                        order
-                                                            .userId
-                                                            ?.name ||
-                                                        "Not available"
-                                                    }
-                                                </strong>
-
-                                                <span>
-                                                    {
-                                                        order
-                                                            .userId
-                                                            ?.email ||
-                                                        "Not available"
-                                                    }
-                                                </span>
-
-                                            </div>
-
-                                        </div>
-
-                                        {/* ORDER META */}
-
-                                        <div className="exact-admin-order-meta">
-
-                                            <strong>
-                                                {order.items?.reduce(
-                                                    (
-                                                        total,
-                                                        item
-                                                    ) =>
-                                                        total +
-                                                        Number(
-                                                            item.quantity ||
-                                                                0
-                                                        ),
-                                                    0
-                                                )}{" "}
-                                                items
-                                            </strong>
-
-                                            <span>
-                                                ₹
-                                                {formatAmount(
-                                                    order.totalAmount
-                                                )}
-                                            </span>
-
-                                        </div>
-
-                                        {/* ORDER STATUS */}
-
-                                        <span
-                                            className={`exact-status-badge ${order.status}`}
-                                        >
-                                            {order.status}
-                                        </span>
-
-                                        {/* VIEW DETAILS */}
-
-                                        <button
-                                            className="exact-admin-view-button"
-                                            onClick={() =>
-                                                navigate(
-                                                    `/admin/orders/${order._id}`
-                                                )
-                                            }
-                                        >
-                                            View Details →
-                                        </button>
-
-                                    </div>
-
-                                    {/* =================================================
-                                        CUSTOMER REQUESTS
-                                    ================================================= */}
-
-                                    {itemRequests.length >
-                                        0 && (
-
-                                        <div className="admin-order-requests">
-
-                                            <div className="admin-order-requests-title">
-                                                Customer Product Requests
-                                            </div>
-
-                                            {itemRequests.map(
-                                                ({
-                                                    type,
-                                                    item
-                                                }) => {
-
-                                                    const approveKey =
-                                                        `${type}-approve-${item._id}`;
-
-                                                    const rejectKey =
-                                                        `${type}-reject-${item._id}`;
-
-                                                    return (
-                                                        <div
-                                                            className={`admin-order-request ${type}`}
-                                                            key={`${type}-${item._id}`}
-                                                        >
-
-                                                            {/* PRODUCT NAME */}
-
-                                                            <div className="admin-request-product">
-
-                                                                <strong>
-                                                                    {item.name ||
-                                                                        "Product"}
-                                                                </strong>
-
-                                                                <span>
-                                                                    Qty:{" "}
-                                                                    {
-                                                                        item.quantity
-                                                                    }
-                                                                </span>
-
-                                                            </div>
-
-                                                            {/* CANCELLED */}
-
-                                                            {type ===
-                                                                "cancelled" && (
-
-                                                                <div className="admin-request-status cancelled-status">
-                                                                    Product Cancelled
-                                                                </div>
-                                                            )}
-
-                                                            {/* RETURN */}
-
-                                                            {type ===
-                                                                "return" && (
-
-                                                                <>
-                                                                    <div className="admin-request-status return-status">
-                                                                        Return Requested
-                                                                    </div>
-
-                                                                    <div className="admin-request-actions">
-
-                                                                        <button
-                                                                            className="admin-approve-button"
-                                                                            disabled={
-                                                                                actionLoading ===
-                                                                                approveKey
-                                                                            }
-                                                                            onClick={() =>
-                                                                                handleRequestAction(
-                                                                                    order._id,
-                                                                                    item._id,
-                                                                                    "return",
-                                                                                    "approve"
-                                                                                )
-                                                                            }
-                                                                        >
-                                                                            {actionLoading ===
-                                                                            approveKey
-                                                                                ? "Approving..."
-                                                                                : "Approve"}
-                                                                        </button>
-
-                                                                        <button
-                                                                            className="admin-reject-button"
-                                                                            disabled={
-                                                                                actionLoading ===
-                                                                                rejectKey
-                                                                            }
-                                                                            onClick={() =>
-                                                                                handleRequestAction(
-                                                                                    order._id,
-                                                                                    item._id,
-                                                                                    "return",
-                                                                                    "reject"
-                                                                                )
-                                                                            }
-                                                                        >
-                                                                            {actionLoading ===
-                                                                            rejectKey
-                                                                                ? "Rejecting..."
-                                                                                : "Reject"}
-                                                                        </button>
-
-                                                                    </div>
-                                                                </>
-                                                            )}
-
-                                                            {/* EXCHANGE */}
-
-                                                            {type ===
-                                                                "exchange" && (
-
-                                                                <>
-                                                                    <div className="admin-request-status exchange-status">
-                                                                        Exchange Requested
-                                                                    </div>
-
-                                                                    <div className="admin-request-actions">
-
-                                                                        <button
-                                                                            className="admin-approve-button"
-                                                                            disabled={
-                                                                                actionLoading ===
-                                                                                approveKey
-                                                                            }
-                                                                            onClick={() =>
-                                                                                handleRequestAction(
-                                                                                    order._id,
-                                                                                    item._id,
-                                                                                    "exchange",
-                                                                                    "approve"
-                                                                                )
-                                                                            }
-                                                                        >
-                                                                            {actionLoading ===
-                                                                            approveKey
-                                                                                ? "Approving..."
-                                                                                : "Approve"}
-                                                                        </button>
-
-                                                                        <button
-                                                                            className="admin-reject-button"
-                                                                            disabled={
-                                                                                actionLoading ===
-                                                                                rejectKey
-                                                                            }
-                                                                            onClick={() =>
-                                                                                handleRequestAction(
-                                                                                    order._id,
-                                                                                    item._id,
-                                                                                    "exchange",
-                                                                                    "reject"
-                                                                                )
-                                                                            }
-                                                                        >
-                                                                            {actionLoading ===
-                                                                            rejectKey
-                                                                                ? "Rejecting..."
-                                                                                : "Reject"}
-                                                                        </button>
-
-                                                                    </div>
-                                                                </>
-                                                            )}
-
-                                                        </div>
-                                                    );
-                                                }
-                                            )}
-
                                         </div>
                                     )}
 
-                                </div>
+                                    <div className="exact-admin-order-row">
+                                        <div className="exact-admin-order-main">
+                                            <div className="exact-admin-order-number">
+                                                <strong>
+                                                    #
+                                                    {order._id.slice(
+                                                        -8
+                                                    )}
+                                                </strong>
+
+                                                <span>
+                                                    {order.createdAt
+                                                        ? new Date(
+                                                              order.createdAt
+                                                          ).toLocaleDateString(
+                                                              "en-IN",
+                                                              {
+                                                                  day: "2-digit",
+                                                                  month: "short",
+                                                                  year: "numeric"
+                                                              }
+                                                          )
+                                                        : "N/A"}
+                                                    ,{" "}
+                                                    {formatTime(
+                                                        order.createdAt
+                                                    )}
+                                                </span>
+                                            </div>
+
+                                            <div className="exact-admin-customer">
+                                                <div className="exact-admin-customer-avatar">
+                                                    {(
+                                                        order
+                                                            .userId
+                                                            ?.name ||
+                                                        "U"
+                                                    )
+                                                        .charAt(
+                                                            0
+                                                        )
+                                                        .toUpperCase()}
+                                                </div>
+
+                                                <div>
+                                                    <strong>
+                                                        {
+                                                            order
+                                                                .userId
+                                                                ?.name ||
+                                                            "Not available"
+                                                        }
+                                                    </strong>
+
+                                                    <span>
+                                                        {
+                                                            order
+                                                                .userId
+                                                                ?.email ||
+                                                            "Not available"
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="exact-admin-order-meta">
+                                                <strong>
+                                                    {order.items?.reduce(
+                                                        (
+                                                            total,
+                                                            item
+                                                        ) =>
+                                                            total +
+                                                            Number(
+                                                                item.quantity ||
+                                                                    0
+                                                            ),
+                                                        0
+                                                    )}{" "}
+                                                    items
+                                                </strong>
+
+                                                <span>
+                                                    ₹
+                                                    {formatAmount(
+                                                        order.totalAmount
+                                                    )}
+                                                </span>
+                                            </div>
+
+                                            <span
+                                                className={`exact-status-badge ${order.status}`}
+                                            >
+                                                {
+                                                    order.status
+                                                }
+                                            </span>
+
+                                            <button
+                                                className="exact-admin-view-button"
+                                                onClick={() =>
+                                                    navigate(
+                                                        `/admin/orders/${order._id}`
+                                                    )
+                                                }
+                                            >
+                                                View Details →
+                                            </button>
+                                        </div>
+
+                                        {itemRequests.length >
+                                            0 && (
+                                            <div className="admin-order-requests">
+                                                <div className="admin-order-requests-title">
+                                                    Customer Product Requests
+                                                </div>
+
+                                                {itemRequests.map(
+                                                    ({
+                                                        type,
+                                                        item
+                                                    }) => {
+                                                        const approveKey =
+                                                            `${type}-approve-${item._id}`;
+
+                                                        const rejectKey =
+                                                            `${type}-reject-${item._id}`;
+
+                                                        return (
+                                                            <div
+                                                                className={`admin-order-request ${type}`}
+                                                                key={`${type}-${item._id}`}
+                                                            >
+                                                                <div className="admin-request-product">
+                                                                    <strong>
+                                                                        {item.name ||
+                                                                            "Product"}
+                                                                    </strong>
+
+                                                                    <span>
+                                                                        Qty:{" "}
+                                                                        {
+                                                                            item.quantity
+                                                                        }
+                                                                    </span>
+                                                                </div>
+
+                                                                {type ===
+                                                                    "cancelled" && (
+                                                                    <div className="admin-request-status cancelled-status">
+                                                                        Product Cancelled
+                                                                    </div>
+                                                                )}
+
+                                                                {type ===
+                                                                    "return" && (
+                                                                    <>
+                                                                        <div className="admin-request-status return-status">
+                                                                            Return Requested
+                                                                        </div>
+
+                                                                        <div className="admin-request-actions">
+                                                                            <button
+                                                                                className="admin-approve-button"
+                                                                                disabled={
+                                                                                    actionLoading ===
+                                                                                    approveKey
+                                                                                }
+                                                                                onClick={() =>
+                                                                                    handleRequestAction(
+                                                                                        order._id,
+                                                                                        item._id,
+                                                                                        "return",
+                                                                                        "approve"
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                {actionLoading ===
+                                                                                approveKey
+                                                                                    ? "Approving..."
+                                                                                    : "Approve"}
+                                                                            </button>
+
+                                                                            <button
+                                                                                className="admin-reject-button"
+                                                                                disabled={
+                                                                                    actionLoading ===
+                                                                                    rejectKey
+                                                                                }
+                                                                                onClick={() =>
+                                                                                    handleRequestAction(
+                                                                                        order._id,
+                                                                                        item._id,
+                                                                                        "return",
+                                                                                        "reject"
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                {actionLoading ===
+                                                                                rejectKey
+                                                                                    ? "Rejecting..."
+                                                                                    : "Reject"}
+                                                                            </button>
+                                                                        </div>
+                                                                    </>
+                                                                )}
+
+                                                                {type ===
+                                                                    "exchange" && (
+                                                                    <>
+                                                                        <div className="admin-request-status exchange-status">
+                                                                            Exchange Requested
+                                                                        </div>
+
+                                                                        <div className="admin-request-actions">
+                                                                            <button
+                                                                                className="admin-approve-button"
+                                                                                disabled={
+                                                                                    actionLoading ===
+                                                                                    approveKey
+                                                                                }
+                                                                                onClick={() =>
+                                                                                    handleRequestAction(
+                                                                                        order._id,
+                                                                                        item._id,
+                                                                                        "exchange",
+                                                                                        "approve"
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                {actionLoading ===
+                                                                                approveKey
+                                                                                    ? "Approving..."
+                                                                                    : "Approve"}
+                                                                            </button>
+
+                                                                            <button
+                                                                                className="admin-reject-button"
+                                                                                disabled={
+                                                                                    actionLoading ===
+                                                                                    rejectKey
+                                                                                }
+                                                                                onClick={() =>
+                                                                                    handleRequestAction(
+                                                                                        order._id,
+                                                                                        item._id,
+                                                                                        "exchange",
+                                                                                        "reject"
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                {actionLoading ===
+                                                                                rejectKey
+                                                                                    ? "Rejecting..."
+                                                                                    : "Reject"}
+                                                                            </button>
+                                                                        </div>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    }
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </Fragment>
                             );
                         }
                     )}
-
                 </div>
             )}
-
         </div>
     );
 }

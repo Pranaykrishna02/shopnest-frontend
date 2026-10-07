@@ -7,8 +7,13 @@ function Navbar() {
     const [menuOpen, setMenuOpen] = useState(false);
 
     const { currentUser, isLoggedIn, logout } = useAppContext();
-
     const { cartItems } = useCart();
+
+    const totalItems = cartItems.reduce(
+        (total, item) =>
+            total + Number(item.quantity || 0),
+        0
+    );
 
     const closeMenu = () => {
         setMenuOpen(false);
@@ -18,12 +23,6 @@ function Navbar() {
         logout();
         closeMenu();
     };
-
-    // Calculate total quantity in cart
-    const totalItems = cartItems.reduce(
-        (total, item) => total + Number(item.quantity || 0),
-        0
-    );
 
     return (
         <nav className="navbar">
@@ -36,10 +35,14 @@ function Navbar() {
                     className="navbar-logo"
                     onClick={closeMenu}
                 >
-                    <span className="logo-icon">🛍️</span>
-                    <span>ShopNest</span>
-                </Link>
+                    <span className="logo-icon">
+                        🛍️
+                    </span>
 
+                    <span>
+                        ShopNest
+                    </span>
+                </Link>
 
                 {/* Desktop Navigation */}
                 <div className="desktop-nav">
@@ -47,7 +50,6 @@ function Navbar() {
                     <Link
                         to="/"
                         className="nav-link"
-                        onClick={closeMenu}
                     >
                         Home
                     </Link>
@@ -55,7 +57,6 @@ function Navbar() {
                     <Link
                         to="/products"
                         className="nav-link"
-                        onClick={closeMenu}
                     >
                         Products
                     </Link>
@@ -63,7 +64,6 @@ function Navbar() {
                     <Link
                         to="/cart"
                         className="nav-link cart-link"
-                        onClick={closeMenu}
                     >
                         🛒 Cart
 
@@ -76,14 +76,21 @@ function Navbar() {
                         <Link
                             to="/orders"
                             className="nav-link"
-                            onClick={closeMenu}
                         >
                             My Orders
                         </Link>
                     )}
 
-                </div>
+                    {isLoggedIn && (
+                        <Link
+                            to="/addresses"
+                            className="nav-link"
+                        >
+                            Addresses
+                        </Link>
+                    )}
 
+                </div>
 
                 {/* Desktop User Section */}
                 <div className="desktop-user">
@@ -95,7 +102,6 @@ function Navbar() {
                             </div>
 
                             <div className="user-details">
-
                                 <span className="user-email">
                                     {currentUser?.email}
                                 </span>
@@ -103,7 +109,6 @@ function Navbar() {
                                 <span className="user-role">
                                     {currentUser?.role}
                                 </span>
-
                             </div>
 
                             <button
@@ -118,7 +123,6 @@ function Navbar() {
                             <Link
                                 to="/login"
                                 className="nav-auth-link"
-                                onClick={closeMenu}
                             >
                                 Login
                             </Link>
@@ -126,7 +130,6 @@ function Navbar() {
                             <Link
                                 to="/register"
                                 className="nav-register-btn"
-                                onClick={closeMenu}
                             >
                                 Register
                             </Link>
@@ -135,13 +138,14 @@ function Navbar() {
 
                 </div>
 
-
-                {/* Hamburger */}
+                {/* Hamburger Button */}
                 <button
                     className={`hamburger ${
                         menuOpen ? "active" : ""
                     }`}
-                    onClick={() => setMenuOpen(!menuOpen)}
+                    onClick={() =>
+                        setMenuOpen(!menuOpen)
+                    }
                     aria-label="Toggle navigation"
                     aria-expanded={menuOpen}
                 >
@@ -151,7 +155,6 @@ function Navbar() {
                 </button>
 
             </div>
-
 
             {/* Mobile Menu */}
             <div
@@ -169,7 +172,6 @@ function Navbar() {
                         </div>
 
                         <div>
-
                             <div className="mobile-user-email">
                                 {currentUser?.email}
                             </div>
@@ -177,12 +179,10 @@ function Navbar() {
                             <div className="mobile-user-role">
                                 {currentUser?.role}
                             </div>
-
                         </div>
 
                     </div>
                 )}
-
 
                 {/* Home */}
                 <Link
@@ -194,7 +194,6 @@ function Navbar() {
                     Home
                 </Link>
 
-
                 {/* Products */}
                 <Link
                     to="/products"
@@ -205,7 +204,6 @@ function Navbar() {
                     Products
                 </Link>
 
-
                 {/* Cart */}
                 <Link
                     to="/cart"
@@ -213,14 +211,12 @@ function Navbar() {
                     onClick={closeMenu}
                 >
                     <span>🛒</span>
-
                     Cart
 
                     <span className="mobile-cart-badge">
                         {totalItems}
                     </span>
                 </Link>
-
 
                 {/* My Orders */}
                 {isLoggedIn && (
@@ -234,9 +230,19 @@ function Navbar() {
                     </Link>
                 )}
 
+                {/* Addresses */}
+                {isLoggedIn && (
+                    <Link
+                        to="/addresses"
+                        className="mobile-nav-link"
+                        onClick={closeMenu}
+                    >
+                        <span>📍</span>
+                        Addresses
+                    </Link>
+                )}
 
                 <div className="mobile-menu-divider"></div>
-
 
                 {/* Logged In */}
                 {isLoggedIn ? (

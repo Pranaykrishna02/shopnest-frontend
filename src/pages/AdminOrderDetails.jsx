@@ -1,54 +1,51 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import {Link,useParams} from "react-router-dom";
+import {
+
+    useNavigate,
+
+    useSearchParams
+
+} from "react-router-dom";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
+function AdminOrders() {
 
-function AdminOrderDetails() {
+    const navigate = useNavigate();
 
-    const { id } = useParams();
+    const [searchParams] = useSearchParams();
 
-    const [order, setOrder] = useState(null);
 
-    const [products, setProducts] = useState([]);
+
+    const selectedStatus =
+
+        searchParams.get("status");
+
+
+    const selectedRequest =
+
+        searchParams.get("request");
+
+
+
+    const [orders, setOrders] = useState([]);
 
     const [loading, setLoading] = useState(true);
 
     const [error, setError] = useState("");
 
-    const [updating, setUpdating] =
-        useState(false);
-
-    const [selectedStatus, setSelectedStatus] =
-        useState("");
-
-    const [
-        exchangeUpdatingItemId,
-        setExchangeUpdatingItemId
-    ] = useState(null);
+    const [search, setSearch] = useState("");
 
 
-    // ======================================================
-    // ORDER STATUSES
-    // ======================================================
 
-    const statuses = [
-        "pending",
-        "confirmed",
-        "shipped",
-        "delivered",
-        "cancelled"
-    ];
+    const [actionLoading, setActionLoading] = useState(null);
 
 
-    // ======================================================
-    // FETCH ORDER
-    // ======================================================
 
     useEffect(() => {
 
-        const fetchOrder = async () => {
+        const fetchOrders = async () => {
 
             try {
 
@@ -56,91 +53,61 @@ function AdminOrderDetails() {
 
                 setError("");
 
-                const token =
-                    localStorage.getItem("token");
 
-
-                // ==================================================
-                // GET ORDER
-                // ==================================================
 
                 const response = await fetch(
-                    `${API_URL}/order/admin/${id}`,
+
+                    `${API_URL}/order/list`,
+
                     {
+
                         headers: {
-                            Authorization:
-                                `Bearer ${token}`
+
+                            Authorization: `Bearer ${localStorage.getItem(
+
+                                "token"
+
+                            )}`
+
                         }
+
                     }
+
                 );
+
 
 
                 const result =
+
                     await response.json();
 
 
+
                 if (
+
                     !response.ok ||
+
                     !result.status
+
                 ) {
 
                     throw new Error(
+
                         result.message ||
-                        "Failed to fetch order"
+
+                            "Failed to fetch orders"
+
                     );
 
                 }
 
 
-                setOrder(result.data);
 
-                setSelectedStatus(
-                    result.data.status
-                );
-
-
-                // ==================================================
-                // GET PRODUCTS
-                // ==================================================
-
-                try {
-
-                    const productResponse =
-                        await fetch(
-                            `${API_URL}/product/list`
-                        );
-
-
-                    const productResult =
-                        await productResponse.json();
-
-
-                    if (
-                        productResponse.ok &&
-                        productResult.status
-                    ) {
-
-                        setProducts(
-                            productResult.data || []
-                        );
-
-                    }
-
-                } catch (productError) {
-
-                    console.log(
-                        "Product image lookup failed:",
-                        productError.message
-                    );
-
-                }
-
+                setOrders(result.data || []);
 
             } catch (error) {
 
-                setError(
-                    error.message
-                );
+                setError(error.message);
 
             } finally {
 
@@ -151,737 +118,728 @@ function AdminOrderDetails() {
         };
 
 
-        fetchOrder();
 
-    }, [id]);
+        fetchOrders();
 
-
-    // ======================================================
-    // UPDATE ORDER STATUS
-    // ======================================================
-
-    const handleStatusUpdate = async () => {
-
-        if (
-            !selectedStatus ||
-            selectedStatus === order.status
-        ) {
-            return;
-        }
+    }, []);
 
 
-        try {
 
-            setUpdating(true);
+    /*
 
-            setError("");
+     * =====================================================
+
+     * REQUEST COUNTS
+
+     * =====================================================
+
+     */
 
 
-            const response = await fetch(
-                `${API_URL}/order/${id}/status`,
-                {
-                    method: "PUT",
 
-                    headers: {
-                        "Content-Type":
-                            "application/json",
+    const requestCounts = useMemo(() => {
 
-                        Authorization:
-                            `Bearer ${localStorage.getItem(
-                                "token"
-                            )}`
-                    },
+        let cancelled = 0;
 
-                    body: JSON.stringify({
-                        status:
-                            selectedStatus
-                    })
+        let returnRequests = 0;
+
+        let exchangeRequests = 0;
+
+
+
+        orders.forEach((order) => {
+
+            order.items?.forEach((item) => {
+
+                if (
+
+                    item.cancelStatus ===
+
+                    "cancelled"
+
+                ) {
+
+                    cancelled++;
+
                 }
-            );
 
 
-            const result =
-                await response.json();
+
+                if (
+
+                    item.returnStatus ===
+
+                    "return_requested"
+
+                ) {
+
+                    returnRequests++;
+
+                }
 
 
-            if (
-                !response.ok ||
-                !result.status
-            ) {
 
-                throw new Error(
-                    result.message ||
-                    "Failed to update order status"
-                );
+                if (
 
+                    item.exchangeStatus ===
+
+                    "exchange_requested"
+
+                ) {
+
+                    exchangeRequests++;
+
+                }
+
+            });
+
+        });
+
+
+
+        return {
+
+            cancelled,
+
+            returnRequests,
+
+            exchangeRequests
+
+        };
+
+    }, [orders]);
+
+
+
+    /*
+
+     * =====================================================
+
+     * ORDER COUNTS
+
+     * =====================================================
+
+     */
+
+
+
+    const counts = useMemo(() => {
+
+        return {
+
+            all: orders.length,
+
+
+
+            pending: orders.filter(
+
+                (order) =>
+
+                    order.status ===
+
+                    "pending"
+
+            ).length,
+
+
+
+            confirmed: orders.filter(
+
+                (order) =>
+
+                    order.status ===
+
+                    "confirmed"
+
+            ).length,
+
+
+
+            delivered: orders.filter(
+
+                (order) =>
+
+                    order.status ===
+
+                    "delivered"
+
+            ).length
+
+        };
+
+    }, [orders]);
+
+
+
+    /*
+
+     * =====================================================
+
+     * FILTER ORDERS
+
+     * =====================================================
+
+     */
+
+
+
+    const filteredOrders = useMemo(() => {
+
+        return orders.filter((order) => {
+
+            const statusMatch =
+                !selectedStatus ||
+                order.status === selectedStatus;
+
+            const requestMatch =
+                !selectedRequest ||
+                order.items?.some((item) => {
+
+                    if (selectedRequest === "cancelled") {
+                        return item.cancelStatus === "cancelled";
+                    }
+
+                    if (selectedRequest === "return") {
+                        return item.returnStatus === "return_requested";
+                    }
+
+                    if (selectedRequest === "exchange") {
+                        return item.exchangeStatus === "exchange_requested";
+                    }
+
+                    return false;
+                });
+
+            const searchValue =
+                search.trim().toLowerCase();
+
+            if (!searchValue) {
+                return statusMatch && requestMatch;
             }
 
+            const orderId =
+                order._id?.toLowerCase() || "";
 
-            setOrder(result.data);
+            const customerName =
+                order.userId?.name?.toLowerCase() || "";
 
-            setSelectedStatus(
-                result.data.status
+            const customerEmail =
+                order.userId?.email?.toLowerCase() || "";
+
+            return (
+                statusMatch &&
+                requestMatch &&
+                (
+                    orderId.includes(searchValue) ||
+                    customerName.includes(searchValue) ||
+                    customerEmail.includes(searchValue)
+                )
             );
+        });
+
+    }, [
+        orders,
+        selectedStatus,
+        selectedRequest,
+        search
+    ]);
 
 
-        } catch (error) {
+    const changeFilter = (status) => {
 
-            setError(
-                error.message
-            );
+        if (status === "all") {
 
-        } finally {
+            navigate("/admin/orders");
 
-            setUpdating(false);
+            return;
 
         }
 
-    };
 
 
-    // ======================================================
-    // FORMAT DATE
-    // ======================================================
+        navigate(
 
-    const formatDateTime = (date) => {
+            `/admin/orders?status=${status}`
 
-        if (!date) {
-            return "N/A";
-        }
-
-
-        return new Date(date).toLocaleString(
-            "en-IN",
-            {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit"
-            }
         );
 
     };
 
 
-    // ======================================================
-    // FORMAT AMOUNT
-    // ======================================================
+
+    /*
+
+     * =====================================================
+
+     * FORMAT TIME
+
+     * =====================================================
+
+     */
+
+
+
+    const formatTime = (date) => {
+
+        if (!date) {
+
+            return "";
+
+        }
+
+
+
+        return new Date(
+
+            date
+
+        ).toLocaleTimeString(
+
+            "en-IN",
+
+            {
+
+                hour: "2-digit",
+
+                minute: "2-digit"
+
+            }
+
+        );
+
+    };
+
+
+
+    /*
+
+     * =====================================================
+
+     * FORMAT AMOUNT
+
+     * =====================================================
+
+     */
+
+
 
     const formatAmount = (amount) => {
 
         return Number(
+
             amount || 0
+
         ).toLocaleString("en-IN");
 
     };
 
 
-    // ======================================================
-    // GET PRODUCT NAME
-    // ======================================================
 
-    const getProductName = (item) => {
+    /*
 
-        if (!item) {
-            return "Product";
-        }
+     * =====================================================
 
+     * HANDLE RETURN / EXCHANGE
 
-        if (
-            item.name &&
-            typeof item.name === "object"
-        ) {
+     * =====================================================
 
-            return (
-                item.name.name ||
-                "Product"
-            );
-
-        }
+     */
 
 
-        if (
-            item.name &&
-            typeof item.name === "string"
-        ) {
 
-            return item.name;
+    const handleRequestAction = async (
 
-        }
+        orderId,
 
+        itemId,
 
-        if (
-            item.productId &&
-            typeof item.productId === "object"
-        ) {
+        type,
 
-            return (
-                item.productId.name ||
-                "Product"
-            );
+        action
 
-        }
+    ) => {
+
+        const actionKey =
+
+            `${type}-${action}-${itemId}`;
 
 
-        return "Product";
 
-    };
+        try {
 
-
-    // ======================================================
-    // GET PRODUCT IMAGE
-    // ======================================================
-
-    const getProductImage = (productData) => {
-
-        if (!productData) {
-            return "";
-        }
+            setActionLoading(actionKey);
 
 
-        // ==================================================
-        // IF PRODUCT IS AN OBJECT
-        // ==================================================
 
-        if (
-            typeof productData === "object"
-        ) {
+            let endpoint = "";
 
-            const directImage =
-                productData.image ||
-                productData.imageUrl ||
-                productData.productImage ||
-                "";
 
 
             if (
-                typeof directImage === "string" &&
-                directImage.trim() !== ""
+
+                type === "return" &&
+
+                action === "approve"
+
             ) {
 
-                return directImage.trim();
+                endpoint =
+
+                    `/order/${orderId}/item/${itemId}/return/approve`;
 
             }
 
 
-            // ==============================================
-            // FIND PRODUCT FROM PRODUCT LIST
-            // ==============================================
 
-            const productId =
-                productData._id ||
-                productData.id;
+            if (
 
+                type === "return" &&
 
-            if (productId) {
+                action === "reject"
 
-                const matchingProduct =
-                    products.find(
-                        (product) =>
-                            String(product._id) ===
-                            String(productId)
-                    );
+            ) {
+
+                endpoint =
+
+                    `/order/${orderId}/item/${itemId}/return/reject`;
+
+            }
 
 
-                if (matchingProduct) {
 
-                    return (
-                        matchingProduct.image ||
-                        matchingProduct.imageUrl ||
-                        matchingProduct.productImage ||
-                        ""
-                    );
+            if (
+
+                type === "exchange" &&
+
+                action === "approve"
+
+            ) {
+
+                endpoint =
+
+                    `/order/${orderId}/item/${itemId}/exchange/approve`;
+
+            }
+
+
+
+            if (
+
+                type === "exchange" &&
+
+                action === "reject"
+
+            ) {
+
+                endpoint =
+
+                    `/order/${orderId}/item/${itemId}/exchange/reject`;
+
+            }
+
+
+
+            if (!endpoint) {
+
+                return;
+
+            }
+
+
+
+            const response = await fetch(
+
+                `${API_URL}${endpoint}`,
+
+                {
+
+                    method: "PUT",
+
+                    headers: {
+
+                        Authorization: `Bearer ${localStorage.getItem(
+
+                            "token"
+
+                        )}`,
+
+                        "Content-Type":
+
+                            "application/json"
+
+                    }
 
                 }
 
-            }
-
-        }
-
-
-        // ==================================================
-        // IF PRODUCT IS JUST AN ID
-        // ==================================================
-
-        if (
-            typeof productData === "string"
-        ) {
-
-            const matchingProduct =
-                products.find(
-                    (product) =>
-                        String(product._id) ===
-                        String(productData)
-                );
-
-
-            if (matchingProduct) {
-
-                return (
-                    matchingProduct.image ||
-                    matchingProduct.imageUrl ||
-                    matchingProduct.productImage ||
-                    ""
-                );
-
-            }
-
-        }
-
-
-        return "";
-
-    };
-
-
-    // ======================================================
-    // GET REPLACEMENT PRODUCT
-    // ======================================================
-
-    const getReplacementProduct = (item) => {
-
-        return (
-            item?.exchangeRequest
-                ?.replacementProductId ||
-            null
-        );
-
-    };
-
-
-    // ======================================================
-    // GET REPLACEMENT PRODUCT NAME
-    // ======================================================
-
-    const getReplacementProductName = (item) => {
-
-        const replacementProduct =
-            getReplacementProduct(item);
-
-
-        if (
-            replacementProduct &&
-            typeof replacementProduct ===
-                "object"
-        ) {
-
-            return (
-                replacementProduct.name ||
-                item.exchangeRequest
-                    ?.replacementProductName ||
-                "Replacement Product"
             );
 
+
+
+            const result =
+
+                await response.json();
+
+
+
+            if (
+
+                !response.ok ||
+
+                !result.status
+
+            ) {
+
+                throw new Error(
+
+                    result.message ||
+
+                        `Failed to ${action} ${type} request`
+
+                );
+
+            }
+
+
+
+            /*
+
+             * Update the order inside the page
+
+             * without refreshing the browser.
+
+             */
+
+
+
+            setOrders((previousOrders) =>
+
+                previousOrders.map(
+
+                    (order) => {
+
+                        if (
+
+                            order._id !==
+
+                            orderId
+
+                        ) {
+
+                            return order;
+
+                        }
+
+
+
+                        return {
+
+                            ...order,
+
+                            items:
+
+                                order.items?.map(
+
+                                    (item) => {
+
+                                        if (
+
+                                            item._id !==
+
+                                            itemId
+
+                                        ) {
+
+                                            return item;
+
+                                        }
+
+
+
+                                        if (
+
+                                            type ===
+
+                                            "return"
+
+                                        ) {
+
+                                            return {
+
+                                                ...item,
+
+                                                returnStatus:
+
+                                                    action ===
+
+                                                    "approve"
+
+                                                        ? "return_approved"
+
+                                                        : "return_rejected"
+
+                                            };
+
+                                        }
+
+
+
+                                        if (
+
+                                            type ===
+
+                                            "exchange"
+
+                                        ) {
+
+                                            return {
+
+                                                ...item,
+
+                                                exchangeStatus:
+
+                                                    action ===
+
+                                                    "approve"
+
+                                                        ? "exchange_approved"
+
+                                                        : "exchange_rejected"
+
+                                            };
+
+                                        }
+
+
+
+                                        return item;
+
+                                    }
+
+                                )
+
+                        };
+
+                    }
+
+                )
+
+            );
+
+
+
+        } catch (error) {
+
+            alert(error.message);
+
+        } finally {
+
+            setActionLoading(null);
+
         }
-
-
-        return (
-            item.exchangeRequest
-                ?.replacementProductName ||
-            "Replacement Product"
-        );
 
     };
 
 
-    // ======================================================
-    // GET REPLACEMENT PRODUCT PRICE
-    // ======================================================
 
-    const getReplacementProductPrice = (item) => {
+    /*
 
-        const replacementProduct =
-            getReplacementProduct(item);
+     * =====================================================
 
+     * GET ITEM REQUESTS
 
-        if (
-            replacementProduct &&
-            typeof replacementProduct ===
-                "object" &&
-            replacementProduct.price !==
-                undefined
-        ) {
+     * =====================================================
 
-            return replacementProduct.price;
-
-        }
+     */
 
 
-        const replacementProductId =
-            typeof replacementProduct ===
-                "string"
-                ? replacementProduct
-                : replacementProduct?._id;
+
+    const getItemRequests = (order) => {
+
+        const requests = [];
 
 
-        if (replacementProductId) {
 
-            const matchingProduct =
-                products.find(
-                    (product) =>
-                        String(product._id) ===
-                        String(replacementProductId)
-                );
+        order.items?.forEach((item) => {
 
+            if (
 
-            if (matchingProduct) {
+                item.cancelStatus ===
 
-                return matchingProduct.price;
+                "cancelled"
+
+            ) {
+
+                requests.push({
+
+                    type: "cancelled",
+
+                    item
+
+                });
 
             }
 
-        }
 
 
-        return null;
+            if (
+
+                item.returnStatus ===
+
+                "return_requested"
+
+            ) {
+
+                requests.push({
+
+                    type: "return",
+
+                    item
+
+                });
+
+            }
+
+
+
+            if (
+
+                item.exchangeStatus ===
+
+                "exchange_requested"
+
+            ) {
+
+                requests.push({
+
+                    type: "exchange",
+
+                    item
+
+                });
+
+            }
+
+        });
+
+
+
+        return requests;
 
     };
 
 
-    // ======================================================
-    // APPROVE EXCHANGE
-    // ======================================================
 
-    const handleApproveExchange =
-        async (itemId) => {
+    /*
 
-            try {
+     * =====================================================
 
-                setExchangeUpdatingItemId(
-                    itemId
-                );
+     * LOADING
 
-                setError("");
+     * =====================================================
 
+     */
 
-                const response = await fetch(
-                    `${API_URL}/order/${id}/item/${itemId}/exchange/approve`,
-                    {
-                        method: "PUT",
 
-                        headers: {
-                            Authorization:
-                                `Bearer ${localStorage.getItem(
-                                    "token"
-                                )}`
-                        }
-                    }
-                );
-
-
-                const result =
-                    await response.json();
-
-
-                if (
-                    !response.ok ||
-                    !result.status
-                ) {
-
-                    throw new Error(
-                        result.message ||
-                        "Failed to approve exchange request"
-                    );
-
-                }
-
-
-                setOrder(result.data);
-
-
-            } catch (error) {
-
-                setError(
-                    error.message
-                );
-
-            } finally {
-
-                setExchangeUpdatingItemId(
-                    null
-                );
-
-            }
-
-        };
-
-
-    // ======================================================
-    // REJECT EXCHANGE
-    // ======================================================
-
-    const handleRejectExchange =
-        async (itemId) => {
-
-            try {
-
-                setExchangeUpdatingItemId(
-                    itemId
-                );
-
-                setError("");
-
-
-                const response = await fetch(
-                    `${API_URL}/order/${id}/item/${itemId}/exchange/reject`,
-                    {
-                        method: "PUT",
-
-                        headers: {
-                            Authorization:
-                                `Bearer ${localStorage.getItem(
-                                    "token"
-                                )}`
-                        }
-                    }
-                );
-
-
-                const result =
-                    await response.json();
-
-
-                if (
-                    !response.ok ||
-                    !result.status
-                ) {
-
-                    throw new Error(
-                        result.message ||
-                        "Failed to reject exchange request"
-                    );
-
-                }
-
-
-                setOrder(result.data);
-
-
-            } catch (error) {
-
-                setError(
-                    error.message
-                );
-
-            } finally {
-
-                setExchangeUpdatingItemId(
-                    null
-                );
-
-            }
-
-        };
-
-
-    // ======================================================
-    // START EXCHANGE PROCESSING
-    // ======================================================
-
-    const handleProcessExchange =
-        async (itemId) => {
-
-            try {
-
-                setExchangeUpdatingItemId(
-                    itemId
-                );
-
-                setError("");
-
-
-                const response = await fetch(
-                    `${API_URL}/order/${id}/item/${itemId}/exchange/process`,
-                    {
-                        method: "PUT",
-
-                        headers: {
-                            Authorization:
-                                `Bearer ${localStorage.getItem(
-                                    "token"
-                                )}`
-                        }
-                    }
-                );
-
-
-                const result =
-                    await response.json();
-
-
-                if (
-                    !response.ok ||
-                    !result.status
-                ) {
-
-                    throw new Error(
-                        result.message ||
-                        "Failed to start exchange processing"
-                    );
-
-                }
-
-
-                setOrder(result.data);
-
-
-            } catch (error) {
-
-                setError(
-                    error.message
-                );
-
-            } finally {
-
-                setExchangeUpdatingItemId(
-                    null
-                );
-
-            }
-
-        };
-
-
-    // ======================================================
-    // SHIP EXCHANGE
-    // ======================================================
-
-    const handleShipExchange =
-        async (itemId) => {
-
-            try {
-
-                setExchangeUpdatingItemId(
-                    itemId
-                );
-
-                setError("");
-
-
-                const response = await fetch(
-                    `${API_URL}/order/${id}/item/${itemId}/exchange/ship`,
-                    {
-                        method: "PUT",
-
-                        headers: {
-                            Authorization:
-                                `Bearer ${localStorage.getItem(
-                                    "token"
-                                )}`
-                        }
-                    }
-                );
-
-
-                const result =
-                    await response.json();
-
-
-                if (
-                    !response.ok ||
-                    !result.status
-                ) {
-
-                    throw new Error(
-                        result.message ||
-                        "Failed to ship exchange product"
-                    );
-
-                }
-
-
-                setOrder(result.data);
-
-
-            } catch (error) {
-
-                setError(
-                    error.message
-                );
-
-            } finally {
-
-                setExchangeUpdatingItemId(
-                    null
-                );
-
-            }
-
-        };
-
-
-    // ======================================================
-    // DELIVER EXCHANGE
-    // ======================================================
-
-    const handleDeliverExchange =
-        async (itemId) => {
-
-            try {
-
-                setExchangeUpdatingItemId(
-                    itemId
-                );
-
-                setError("");
-
-
-                const response = await fetch(
-                    `${API_URL}/order/${id}/item/${itemId}/exchange/deliver`,
-                    {
-                        method: "PUT",
-
-                        headers: {
-                            Authorization:
-                                `Bearer ${localStorage.getItem(
-                                    "token"
-                                )}`
-                        }
-                    }
-                );
-
-
-                const result =
-                    await response.json();
-
-
-                if (
-                    !response.ok ||
-                    !result.status
-                ) {
-
-                    throw new Error(
-                        result.message ||
-                        "Failed to mark exchange as delivered"
-                    );
-
-                }
-
-
-                setOrder(result.data);
-
-
-            } catch (error) {
-
-                setError(
-                    error.message
-                );
-
-            } finally {
-
-                setExchangeUpdatingItemId(
-                    null
-                );
-
-            }
-
-        };
-
-
-    // ======================================================
-    // LOADING
-    // ======================================================
 
     if (loading) {
 
@@ -891,7 +849,7 @@ function AdminOrderDetails() {
 
                 <div className="exact-admin-loading">
 
-                    Loading order details...
+                    Loading orders...
 
                 </div>
 
@@ -902,11 +860,20 @@ function AdminOrderDetails() {
     }
 
 
-    // ======================================================
-    // ERROR
-    // ======================================================
 
-    if (error && !order) {
+    /*
+
+     * =====================================================
+
+     * ERROR
+
+     * =====================================================
+
+     */
+
+
+
+    if (error) {
 
         return (
 
@@ -919,49 +886,22 @@ function AdminOrderDetails() {
                 </div>
 
 
-                <Link
-                    to="/admin/orders"
+
+                <button
+
                     className="exact-admin-primary-button"
+
+                    onClick={() =>
+
+                        window.location.reload()
+
+                    }
+
                 >
 
-                    Back to Orders
+                    Try Again
 
-                </Link>
-
-            </div>
-
-        );
-
-    }
-
-
-    // ======================================================
-    // ORDER NOT FOUND
-    // ======================================================
-
-    if (!order) {
-
-        return (
-
-            <div className="exact-admin-page">
-
-                <div className="exact-admin-empty-panel">
-
-                    <h2>
-                        Order Not Found
-                    </h2>
-
-
-                    <Link
-                        to="/admin/orders"
-                        className="exact-admin-primary-button"
-                    >
-
-                        Back to Orders
-
-                    </Link>
-
-                </div>
+                </button>
 
             </div>
 
@@ -970,1138 +910,1099 @@ function AdminOrderDetails() {
     }
 
 
-    // ======================================================
-    // MAIN PAGE
-    // ======================================================
+
+    /*
+
+     * =====================================================
+
+     * MAIN UI
+
+     * =====================================================
+
+     */
+
+
 
     return (
 
-        <div className="exact-admin-page exact-admin-details-page">
+        <div className="exact-admin-page exact-admin-orders-page">
 
 
-            {/* ==================================================
-                PAGE HEADER
-            ================================================== */}
+
+            {/* PAGE HEADING */}
+
+
 
             <div className="exact-admin-orders-heading">
+
+
 
                 <div>
 
                     <h1>
-                        Order Details
+
+                        Admin Orders
+
                     </h1>
 
+
+
                     <p>
-                        Manage and view order information.
+
+                        Manage and track all customer orders.
+
                     </p>
 
                 </div>
 
 
-                <Link
-                    to="/admin/orders"
+
+                <button
+
                     className="exact-admin-back-button"
+
+                    onClick={() =>
+
+                        navigate("/admin")
+
+                    }
+
                 >
 
-                    ← Back to Orders
+                    ← Back to Dashboard
 
-                </Link>
+                </button>
+
+
 
             </div>
 
 
-            {/* ==================================================
-                ERROR
-            ================================================== */}
 
-            {error && (
+            {/* REQUEST SUMMARY */}
 
-                <div className="exact-admin-error">
 
-                    {error}
+
+            <div className="admin-request-summary">
+
+                <button
+                    type="button"
+                    className={`admin-request-card cancelled ${
+                        selectedRequest === "cancelled"
+                            ? "active-request"
+                            : ""
+                    }`}
+                    onClick={() =>
+                        navigate(
+                            selectedRequest === "cancelled"
+                                ? "/admin/orders"
+                                : "/admin/orders?request=cancelled"
+                        )
+                    }
+                >
+                    <span className="admin-request-icon">
+                        ✕
+                    </span>
+
+                    <div>
+                        <strong>
+                            {requestCounts.cancelled}
+                        </strong>
+                        <span>
+                            Cancelled Products
+                        </span>
+                    </div>
+                </button>
+
+                <button
+                    type="button"
+                    className={`admin-request-card return ${
+                        selectedRequest === "return"
+                            ? "active-request"
+                            : ""
+                    }`}
+                    onClick={() =>
+                        navigate(
+                            selectedRequest === "return"
+                                ? "/admin/orders"
+                                : "/admin/orders?request=return"
+                        )
+                    }
+                >
+                    <span className="admin-request-icon">
+                        ↩
+                    </span>
+
+                    <div>
+                        <strong>
+                            {requestCounts.returnRequests}
+                        </strong>
+                        <span>
+                            Return Requests
+                        </span>
+                    </div>
+                </button>
+
+                <button
+                    type="button"
+                    className={`admin-request-card exchange ${
+                        selectedRequest === "exchange"
+                            ? "active-request"
+                            : ""
+                    }`}
+                    onClick={() =>
+                        navigate(
+                            selectedRequest === "exchange"
+                                ? "/admin/orders"
+                                : "/admin/orders?request=exchange"
+                        )
+                    }
+                >
+                    <span className="admin-request-icon">
+                        ⇄
+                    </span>
+
+                    <div>
+                        <strong>
+                            {requestCounts.exchangeRequests}
+                        </strong>
+                        <span>
+                            Exchange Requests
+                        </span>
+                    </div>
+                </button>
+
+            </div>
+
+
+            <div className="exact-admin-order-filters">
+
+
+
+                <button
+
+                    className={
+
+                        !selectedStatus
+
+                            ? "active"
+
+                            : ""
+
+                    }
+
+                    onClick={() =>
+
+                        changeFilter("all")
+
+                    }
+
+                >
+
+                    All Orders
+
+
+
+                    <span>
+
+                        {counts.all}
+
+                    </span>
+
+                </button>
+
+
+
+                <button
+
+                    className={
+
+                        selectedStatus ===
+
+                        "pending"
+
+                            ? "active pending"
+
+                            : ""
+
+                    }
+
+                    onClick={() =>
+
+                        changeFilter("pending")
+
+                    }
+
+                >
+
+                    Pending
+
+
+
+                    <span>
+
+                        {counts.pending}
+
+                    </span>
+
+                </button>
+
+
+
+                <button
+
+                    className={
+
+                        selectedStatus ===
+
+                        "confirmed"
+
+                            ? "active confirmed"
+
+                            : ""
+
+                    }
+
+                    onClick={() =>
+
+                        changeFilter(
+
+                            "confirmed"
+
+                        )
+
+                    }
+
+                >
+
+                    Confirmed
+
+
+
+                    <span>
+
+                        {counts.confirmed}
+
+                    </span>
+
+                </button>
+
+
+
+                <button
+
+                    className={
+
+                        selectedStatus ===
+
+                        "delivered"
+
+                            ? "active delivered"
+
+                            : ""
+
+                    }
+
+                    onClick={() =>
+
+                        changeFilter(
+
+                            "delivered"
+
+                        )
+
+                    }
+
+                >
+
+                    Delivered
+
+
+
+                    <span>
+
+                        {counts.delivered}
+
+                    </span>
+
+                </button>
+
+
+
+            </div>
+
+
+
+            {/* SEARCH */}
+
+
+
+            <div className="exact-admin-search">
+
+
+
+                <span>
+
+                    ⌕
+
+                </span>
+
+
+
+                <input
+
+                    type="text"
+
+                    placeholder="Search by order ID, customer name or email..."
+
+                    value={search}
+
+                    onChange={(event) =>
+
+                        setSearch(
+
+                            event.target.value
+
+                        )
+
+                    }
+
+                />
+
+
+
+                <button
+
+                    type="button"
+
+                    onClick={() =>
+
+                        setSearch(
+
+                            search.trim()
+
+                        )
+
+                    }
+
+                >
+
+                    🔍
+
+                </button>
+
+
+
+            </div>
+
+
+
+            {/* ORDERS */}
+
+
+
+            {filteredOrders.length === 0 ? (
+
+
+
+                <div className="exact-admin-empty-panel">
+
+
+
+                    <h2>
+
+                        No Orders Found
+
+                    </h2>
+
+
+
+                    <p>
+
+                        There are no orders matching your current filter.
+
+                    </p>
+
+
+
+                </div>
+
+
+
+            ) : (
+
+
+
+                <div className="exact-admin-orders-list">
+
+
+
+                    {filteredOrders.map(
+
+                        (order) => {
+
+
+
+                            const itemRequests =
+
+                                getItemRequests(
+
+                                    order
+
+                                );
+
+
+
+                            return (
+
+                                <div
+
+                                    className="exact-admin-order-row"
+
+                                    key={order._id}
+
+                                >
+
+
+
+                                    <div className="exact-admin-order-main">
+
+
+
+                                        {/* ORDER NUMBER */}
+
+
+
+                                        <div className="exact-admin-order-number">
+
+
+
+                                            <strong>
+
+                                                #
+
+                                                {order._id.slice(
+
+                                                    -8
+
+                                                )}
+
+                                            </strong>
+
+
+
+                                            <span>
+
+                                                {order.createdAt
+
+                                                    ? new Date(
+
+                                                          order.createdAt
+
+                                                      ).toLocaleDateString(
+
+                                                          "en-IN",
+
+                                                          {
+
+                                                              day: "2-digit",
+
+                                                              month: "short",
+
+                                                              year: "numeric"
+
+                                                          }
+
+                                                      )
+
+                                                    : "N/A"}
+
+
+
+                                                ,{" "}
+
+
+
+                                                {formatTime(
+
+                                                    order.createdAt
+
+                                                )}
+
+                                            </span>
+
+
+
+                                        </div>
+
+
+
+                                        {/* CUSTOMER */}
+
+
+
+                                        <div className="exact-admin-customer">
+
+
+
+                                            <div className="exact-admin-customer-avatar">
+
+
+
+                                                {(
+
+                                                    order
+
+                                                        .userId
+
+                                                        ?.name ||
+
+                                                    "U"
+
+                                                )
+
+                                                    .charAt(0)
+
+                                                    .toUpperCase()}
+
+
+
+                                            </div>
+
+
+
+                                            <div>
+
+
+
+                                                <strong>
+
+                                                    {
+
+                                                        order
+
+                                                            .userId
+
+                                                            ?.name ||
+
+                                                        "Not available"
+
+                                                    }
+
+                                                </strong>
+
+
+
+                                                <span>
+
+                                                    {
+
+                                                        order
+
+                                                            .userId
+
+                                                            ?.email ||
+
+                                                        "Not available"
+
+                                                    }
+
+                                                </span>
+
+
+
+                                            </div>
+
+
+
+                                        </div>
+
+
+
+                                        {/* ORDER META */}
+
+
+
+                                        <div className="exact-admin-order-meta">
+
+
+
+                                            <strong>
+
+                                                {order.items?.reduce(
+
+                                                    (
+
+                                                        total,
+
+                                                        item
+
+                                                    ) =>
+
+                                                        total +
+
+                                                        Number(
+
+                                                            item.quantity ||
+
+                                                                0
+
+                                                        ),
+
+                                                    0
+
+                                                )}{" "}
+
+                                                items
+
+                                            </strong>
+
+
+
+                                            <span>
+
+                                                ₹
+
+                                                {formatAmount(
+
+                                                    order.totalAmount
+
+                                                )}
+
+                                            </span>
+
+
+
+                                        </div>
+
+
+
+                                        {/* ORDER STATUS */}
+
+
+
+                                        <span
+
+                                            className={`exact-status-badge ${order.status}`}
+
+                                        >
+
+                                            {order.status}
+
+                                        </span>
+
+
+
+                                        {/* VIEW DETAILS */}
+
+
+
+                                        <button
+
+                                            className="exact-admin-view-button"
+
+                                            onClick={() =>
+
+                                                navigate(
+
+                                                    `/admin/orders/${order._id}`
+
+                                                )
+
+                                            }
+
+                                        >
+
+                                            View Details →
+
+                                        </button>
+
+
+
+                                    </div>
+
+
+
+                                    {/* =================================================
+
+                                        CUSTOMER REQUESTS
+
+                                    ================================================= */}
+
+
+
+                                    {itemRequests.length >
+
+                                        0 && (
+
+
+
+                                        <div className="admin-order-requests">
+
+
+
+                                            <div className="admin-order-requests-title">
+
+                                                Customer Product Requests
+
+                                            </div>
+
+
+
+                                            {itemRequests.map(
+
+                                                ({
+
+                                                    type,
+
+                                                    item
+
+                                                }) => {
+
+
+
+                                                    const approveKey =
+
+                                                        `${type}-approve-${item._id}`;
+
+
+
+                                                    const rejectKey =
+
+                                                        `${type}-reject-${item._id}`;
+
+
+
+                                                    return (
+
+                                                        <div
+
+                                                            className={`admin-order-request ${type}`}
+
+                                                            key={`${type}-${item._id}`}
+
+                                                        >
+
+
+
+                                                            {/* PRODUCT NAME */}
+
+
+
+                                                            <div className="admin-request-product">
+
+
+
+                                                                <strong>
+
+                                                                    {item.name ||
+
+                                                                        "Product"}
+
+                                                                </strong>
+
+
+
+                                                                <span>
+
+                                                                    Qty:{" "}
+
+                                                                    {
+
+                                                                        item.quantity
+
+                                                                    }
+
+                                                                </span>
+
+
+
+                                                            </div>
+
+
+
+                                                            {/* CANCELLED */}
+
+
+
+                                                            {type ===
+
+                                                                "cancelled" && (
+
+
+
+                                                                <div className="admin-request-status cancelled-status">
+
+                                                                    Product Cancelled
+
+                                                                </div>
+
+                                                            )}
+
+
+
+                                                            {/* RETURN */}
+
+
+
+                                                            {type ===
+
+                                                                "return" && (
+
+
+
+                                                                <>
+
+                                                                    <div className="admin-request-status return-status">
+
+                                                                        Return Requested
+
+                                                                    </div>
+
+
+
+                                                                    <div className="admin-request-actions">
+
+
+
+                                                                        <button
+
+                                                                            className="admin-approve-button"
+
+                                                                            disabled={
+
+                                                                                actionLoading ===
+
+                                                                                approveKey
+
+                                                                            }
+
+                                                                            onClick={() =>
+
+                                                                                handleRequestAction(
+
+                                                                                    order._id,
+
+                                                                                    item._id,
+
+                                                                                    "return",
+
+                                                                                    "approve"
+
+                                                                                )
+
+                                                                            }
+
+                                                                        >
+
+                                                                            {actionLoading ===
+
+                                                                            approveKey
+
+                                                                                ? "Approving..."
+
+                                                                                : "Approve"}
+
+                                                                        </button>
+
+
+
+                                                                        <button
+
+                                                                            className="admin-reject-button"
+
+                                                                            disabled={
+
+                                                                                actionLoading ===
+
+                                                                                rejectKey
+
+                                                                            }
+
+                                                                            onClick={() =>
+
+                                                                                handleRequestAction(
+
+                                                                                    order._id,
+
+                                                                                    item._id,
+
+                                                                                    "return",
+
+                                                                                    "reject"
+
+                                                                                )
+
+                                                                            }
+
+                                                                        >
+
+                                                                            {actionLoading ===
+
+                                                                            rejectKey
+
+                                                                                ? "Rejecting..."
+
+                                                                                : "Reject"}
+
+                                                                        </button>
+
+
+
+                                                                    </div>
+
+                                                                </>
+
+                                                            )}
+
+
+
+                                                            {/* EXCHANGE */}
+
+
+
+                                                            {type ===
+
+                                                                "exchange" && (
+
+
+
+                                                                <>
+
+                                                                    <div className="admin-request-status exchange-status">
+
+                                                                        Exchange Requested
+
+                                                                    </div>
+
+
+
+                                                                    <div className="admin-request-actions">
+
+
+
+                                                                        <button
+
+                                                                            className="admin-approve-button"
+
+                                                                            disabled={
+
+                                                                                actionLoading ===
+
+                                                                                approveKey
+
+                                                                            }
+
+                                                                            onClick={() =>
+
+                                                                                handleRequestAction(
+
+                                                                                    order._id,
+
+                                                                                    item._id,
+
+                                                                                    "exchange",
+
+                                                                                    "approve"
+
+                                                                                )
+
+                                                                            }
+
+                                                                        >
+
+                                                                            {actionLoading ===
+
+                                                                            approveKey
+
+                                                                                ? "Approving..."
+
+                                                                                : "Approve"}
+
+                                                                        </button>
+
+
+
+                                                                        <button
+
+                                                                            className="admin-reject-button"
+
+                                                                            disabled={
+
+                                                                                actionLoading ===
+
+                                                                                rejectKey
+
+                                                                            }
+
+                                                                            onClick={() =>
+
+                                                                                handleRequestAction(
+
+                                                                                    order._id,
+
+                                                                                    item._id,
+
+                                                                                    "exchange",
+
+                                                                                    "reject"
+
+                                                                                )
+
+                                                                            }
+
+                                                                        >
+
+                                                                            {actionLoading ===
+
+                                                                            rejectKey
+
+                                                                                ? "Rejecting..."
+
+                                                                                : "Reject"}
+
+                                                                        </button>
+
+
+
+                                                                    </div>
+
+                                                                </>
+
+                                                            )}
+
+
+
+                                                        </div>
+
+                                                    );
+
+                                                }
+
+                                            )}
+
+
+
+                                        </div>
+
+                                    )}
+
+
+
+                                </div>
+
+                            );
+
+                        }
+
+                    )}
+
+
 
                 </div>
 
             )}
 
-
-            {/* ==================================================
-                DETAILS GRID
-            ================================================== */}
-
-            <div className="exact-admin-details-grid">
-
-
-                {/* ==================================================
-                    ORDER INFORMATION
-                ================================================== */}
-
-                <section className="exact-admin-detail-card">
-
-                    <div className="exact-admin-detail-card-header">
-
-                        <h2>
-                            Order Information
-                        </h2>
-
-                    </div>
-
-
-                    <div className="exact-admin-detail-info">
-
-
-                        <div>
-
-                            <span>
-                                Order ID
-                            </span>
-
-                            <strong>
-                                #{order._id.slice(-8)}
-                            </strong>
-
-                        </div>
-
-
-                        <div>
-
-                            <span>
-                                Order Date
-                            </span>
-
-                            <strong>
-                                {formatDateTime(
-                                    order.createdAt
-                                )}
-                            </strong>
-
-                        </div>
-
-
-                        <div className="exact-admin-status-update">
-
-                            <span>
-                                Status
-                            </span>
-
-
-                            <div className="exact-admin-status-control">
-
-                                <select
-                                    value={
-                                        selectedStatus
-                                    }
-                                    onChange={(event) =>
-                                        setSelectedStatus(
-                                            event.target.value
-                                        )
-                                    }
-                                    disabled={updating}
-                                >
-
-                                    {statuses.map(
-                                        (status) => (
-
-                                            <option
-                                                key={status}
-                                                value={status}
-                                            >
-                                                {status}
-                                            </option>
-
-                                        )
-                                    )}
-
-                                </select>
-
-
-                                <button
-                                    type="button"
-                                    onClick={
-                                        handleStatusUpdate
-                                    }
-                                    disabled={
-                                        updating ||
-                                        selectedStatus ===
-                                            order.status
-                                    }
-                                >
-
-                                    {updating
-                                        ? "Updating..."
-                                        : "Update Status"}
-
-                                </button>
-
-                            </div>
-
-                        </div>
-
-
-                        <div>
-
-                            <span>
-                                Total Amount
-                            </span>
-
-                            <strong>
-
-                                ₹
-                                {formatAmount(
-                                    order.totalAmount
-                                )}
-
-                            </strong>
-
-                        </div>
-
-
-                        <div>
-
-                            <span>
-                                Payment Method
-                            </span>
-
-                            <strong>
-
-                                {order.paymentMethod ||
-                                    "Not available"}
-
-                            </strong>
-
-                        </div>
-
-
-                    </div>
-
-                </section>
-
-
-                {/* ==================================================
-                    CUSTOMER INFORMATION
-                ================================================== */}
-
-                <section className="exact-admin-detail-card">
-
-                    <div className="exact-admin-detail-card-header">
-
-                        <h2>
-                            Customer Information
-                        </h2>
-
-                    </div>
-
-
-                    <div className="exact-admin-person">
-
-                        <div className="exact-admin-large-avatar">
-
-                            {(
-                                order.userId?.name ||
-                                "U"
-                            )
-                                .charAt(0)
-                                .toUpperCase()}
-
-                        </div>
-
-
-                        <div>
-
-                            <strong>
-
-                                {order.userId?.name ||
-                                    "Not available"}
-
-                            </strong>
-
-
-                            <span>
-
-                                {order.userId?.email ||
-                                    "Not available"}
-
-                            </span>
-
-
-                            {order.userId?.phone && (
-
-                                <span>
-                                    {order.userId.phone}
-                                </span>
-
-                            )}
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-
-                {/* ==================================================
-                    SHIPPING ADDRESS
-                ================================================== */}
-
-                <section className="exact-admin-detail-card">
-
-                    <div className="exact-admin-detail-card-header">
-
-                        <h2>
-                            Shipping Address
-                        </h2>
-
-                    </div>
-
-
-                    <div className="exact-admin-address">
-
-                        <div className="exact-admin-address-icon">
-                            ●
-                        </div>
-
-
-                        <p>
-
-                            {order.shippingAddress ||
-                                "Not available"}
-
-                        </p>
-
-                    </div>
-
-                </section>
-
-
-            </div>
-
-
-            {/* ==================================================
-                ORDER ITEMS
-            ================================================== */}
-
-            <section className="exact-admin-detail-card exact-admin-items-card">
-
-
-                <div className="exact-admin-detail-card-header">
-
-                    <h2>
-                        Order Items
-                    </h2>
-
-                </div>
-
-
-                <div className="exact-admin-items-table-wrap">
-
-                    <table className="exact-admin-items-table">
-
-                        <thead>
-
-                            <tr>
-
-                                <th>
-                                    Product
-                                </th>
-
-                                <th>
-                                    Price
-                                </th>
-
-                                <th>
-                                    Quantity
-                                </th>
-
-                                <th>
-                                    Total
-                                </th>
-
-                            </tr>
-
-                        </thead>
-
-
-                        <tbody>
-
-                            {order.items?.map(
-                                (
-                                    item,
-                                    index
-                                ) => (
-
-                                    <tr
-                                        key={
-                                            item._id ||
-                                            index
-                                        }
-                                    >
-
-                                        <td>
-
-                                            <div className="exact-admin-product-cell">
-
-                                                <div className="exact-admin-product-placeholder">
-
-                                                    {getProductImage(
-                                                        item.productId
-                                                    ) ? (
-
-                                                        <img
-                                                            src={
-                                                                getProductImage(
-                                                                    item.productId
-                                                                )
-                                                            }
-                                                            alt={
-                                                                getProductName(
-                                                                    item
-                                                                )
-                                                            }
-                                                            className="exact-admin-product-image"
-                                                            onError={(event) => {
-                                                                event.currentTarget.style.display =
-                                                                    "none";
-
-                                                                event.currentTarget.parentElement
-                                                                    ?.querySelector(
-                                                                        ".admin-product-image-fallback"
-                                                                    )
-                                                                    ?.classList.add(
-                                                                        "show"
-                                                                    );
-                                                            }}
-                                                        />
-
-                                                    ) : null}
-
-
-                                                    <span className="admin-product-image-fallback">
-
-                                                        🛍
-
-                                                    </span>
-
-                                                </div>
-
-
-                                                <div>
-
-                                                    <strong>
-
-                                                        {getProductName(
-                                                            item
-                                                        )}
-
-                                                    </strong>
-
-
-                                                    <span>
-                                                        Original Product
-                                                    </span>
-
-
-                                                    {item.cancelStatus ===
-                                                        "cancelled" && (
-
-                                                        <span className="admin-item-cancelled">
-
-                                                            Cancelled
-
-                                                        </span>
-
-                                                    )}
-
-                                                </div>
-
-                                            </div>
-
-                                        </td>
-
-
-                                        <td>
-
-                                            ₹
-                                            {formatAmount(
-                                                item.price
-                                            )}
-
-                                        </td>
-
-
-                                        <td>
-
-                                            {item.quantity}
-
-                                        </td>
-
-
-                                        <td>
-
-                                            ₹
-                                            {formatAmount(
-                                                item.total
-                                            )}
-
-                                        </td>
-
-                                    </tr>
-
-                                )
-                            )}
-
-                        </tbody>
-
-
-                        <tfoot>
-
-                            <tr>
-
-                                <td colSpan="3">
-                                    Total Amount
-                                </td>
-
-
-                                <td>
-
-                                    ₹
-                                    {formatAmount(
-                                        order.totalAmount
-                                    )}
-
-                                </td>
-
-                            </tr>
-
-                        </tfoot>
-
-                    </table>
-
-                </div>
-
-
-                {/* ==================================================
-                    EXCHANGE REQUESTS
-                ================================================== */}
-
-                {order.items?.some(
-                    (item) =>
-                        item.exchangeStatus !==
-                        "normal"
-                ) && (
-
-                    <div className="admin-exchange-section">
-
-
-                        {/* ==================================================
-                            EXCHANGE SECTION HEADER
-                        ================================================== */}
-
-                        <div className="admin-exchange-section-header">
-
-                            <div>
-
-                                <span className="admin-exchange-eyebrow">
-
-                                    CUSTOMER REQUEST
-
-                                </span>
-
-
-                                <h2>
-                                    Exchange Requests
-                                </h2>
-
-
-                                <p>
-                                    Review the requested replacement
-                                    product and customer's reason.
-                                </p>
-
-                            </div>
-
-                        </div>
-
-
-                        {/* ==================================================
-                            EXCHANGE REQUEST LIST
-                        ================================================== */}
-
-                        <div className="admin-exchange-list">
-
-                            {order.items
-
-                                ?.filter(
-                                    (item) =>
-                                        item.exchangeStatus !==
-                                        "normal"
-                                )
-
-                                .map(
-                                    (item) => {
-
-                                        const replacementProduct =
-                                            getReplacementProduct(
-                                                item
-                                            );
-
-
-                                        const replacementProductName =
-                                            getReplacementProductName(
-                                                item
-                                            );
-
-
-                                        const replacementImage =
-                                            getProductImage(
-                                                replacementProduct
-                                            );
-
-
-                                        const replacementPrice =
-                                            getReplacementProductPrice(
-                                                item
-                                            );
-
-
-                                        const exchangeStatus =
-                                            item.exchangeStatus;
-
-
-                                        const exchangeDeliveryStatus =
-                                            item.exchangeDeliveryStatus ||
-                                            "not_started";
-
-
-                                        return (
-
-                                            <div
-                                                className="admin-exchange-card"
-                                                key={
-                                                    `exchange-${item._id}`
-                                                }
-                                            >
-
-
-                                                {/* ==================================================
-                                                    EXCHANGE HEADER
-                                                ================================================== */}
-
-                                                <div className="admin-exchange-card-top">
-
-                                                    <div>
-
-                                                        <span className="admin-exchange-request-label">
-
-                                                            Exchange Request
-
-                                                        </span>
-
-
-                                                        <h3>
-
-                                                            {getProductName(
-                                                                item
-                                                            )}
-
-                                                        </h3>
-
-                                                    </div>
-
-
-                                                    <span
-                                                        className={
-                                                            `admin-exchange-status admin-exchange-status-${exchangeStatus.replace(
-                                                                /_/g,
-                                                                "-"
-                                                            )}`
-                                                        }
-                                                    >
-
-                                                        {exchangeStatus.replace(
-                                                            /_/g,
-                                                            " "
-                                                        )}
-
-                                                    </span>
-
-                                                </div>
-
-
-                                                {/* ==================================================
-                                                    ORIGINAL + REPLACEMENT
-                                                ================================================== */}
-
-                                                <div className="admin-exchange-products">
-
-
-                                                    {/* ORIGINAL PRODUCT */}
-
-                                                    <div className="admin-exchange-product-box">
-
-                                                        <span className="admin-exchange-product-label">
-
-                                                            Original Product
-
-                                                        </span>
-
-
-                                                        <div className="admin-exchange-product-content">
-
-                                                            <div className="admin-exchange-product-image">
-
-                                                                {getProductImage(
-                                                                    item.productId
-                                                                ) ? (
-
-                                                                    <img
-                                                                        src={
-                                                                            getProductImage(
-                                                                                item.productId
-                                                                            )
-                                                                        }
-                                                                        alt={
-                                                                            getProductName(
-                                                                                item
-                                                                            )
-                                                                        }
-                                                                        onError={(event) => {
-
-                                                                            event.currentTarget.style.display =
-                                                                                "none";
-
-                                                                            event.currentTarget.parentElement
-                                                                                ?.querySelector(
-                                                                                    ".exchange-image-fallback"
-                                                                                )
-                                                                                ?.classList.add(
-                                                                                    "show"
-                                                                                );
-
-                                                                        }}
-                                                                    />
-
-                                                                ) : null}
-
-
-                                                                <span className="exchange-image-fallback">
-
-                                                                    🛍
-
-                                                                </span>
-
-                                                            </div>
-
-
-                                                            <div>
-
-                                                                <strong>
-
-                                                                    {getProductName(
-                                                                        item
-                                                                    )}
-
-                                                                </strong>
-
-
-                                                                <span>
-
-                                                                    ₹
-                                                                    {formatAmount(
-                                                                        item.price
-                                                                    )}
-
-                                                                </span>
-
-                                                            </div>
-
-                                                        </div>
-
-                                                    </div>
-
-
-                                                    {/* ARROW */}
-
-                                                    <div className="admin-exchange-arrow">
-
-                                                        →
-
-                                                    </div>
-
-
-                                                    {/* REPLACEMENT PRODUCT */}
-
-                                                    <div className="admin-exchange-product-box admin-exchange-replacement-box">
-
-                                                        <span className="admin-exchange-product-label">
-
-                                                            Requested Replacement
-
-                                                        </span>
-
-
-                                                        <div className="admin-exchange-product-content">
-
-                                                            <div className="admin-exchange-product-image">
-
-                                                                {replacementImage ? (
-
-                                                                    <img
-                                                                        src={
-                                                                            replacementImage
-                                                                        }
-                                                                        alt={
-                                                                            replacementProductName
-                                                                        }
-                                                                        onError={(event) => {
-
-                                                                            event.currentTarget.style.display =
-                                                                                "none";
-
-                                                                            event.currentTarget.parentElement
-                                                                                ?.querySelector(
-                                                                                    ".exchange-image-fallback"
-                                                                                )
-                                                                                ?.classList.add(
-                                                                                    "show"
-                                                                                );
-
-                                                                        }}
-                                                                    />
-
-                                                                ) : null}
-
-
-                                                                <span className="exchange-image-fallback">
-
-                                                                    🔄
-
-                                                                </span>
-
-                                                            </div>
-
-
-                                                            <div>
-
-                                                                <strong>
-
-                                                                    {
-                                                                        replacementProductName
-                                                                    }
-
-                                                                </strong>
-
-
-                                                                {replacementPrice !==
-                                                                    null && (
-
-                                                                    <span>
-
-                                                                        ₹
-                                                                        {formatAmount(
-                                                                            replacementPrice
-                                                                        )}
-
-                                                                    </span>
-
-                                                                )}
-
-                                                            </div>
-
-                                                        </div>
-
-                                                    </div>
-
-
-                                                </div>
-
-
-                                                {/* ==================================================
-                                                    CUSTOMER REASON
-                                                ================================================== */}
-
-                                                <div className="admin-exchange-reason">
-
-                                                    <span>
-                                                        Customer Reason
-                                                    </span>
-
-
-                                                    <p>
-
-                                                        {item.exchangeRequest?.reason ||
-                                                            "No reason provided"}
-
-                                                    </p>
-
-                                                </div>
-
-
-                                                {/* ==================================================
-                                                    REQUEST DATE
-                                                ================================================== */}
-
-                                                <div className="admin-exchange-request-date">
-
-                                                    <span>
-                                                        Requested On
-                                                    </span>
-
-
-                                                    <strong>
-
-                                                        {formatDateTime(
-                                                            item.exchangeRequest
-                                                                ?.requestedAt
-                                                        )}
-
-                                                    </strong>
-
-                                                </div>
-
-
-                                                {/* ==================================================
-                                                    APPROVE / REJECT
-                                                ================================================== */}
-
-                                                {exchangeStatus ===
-                                                    "exchange_requested" && (
-
-                                                    <div className="admin-exchange-actions">
-
-
-                                                        <button
-                                                            type="button"
-                                                            className="admin-exchange-approve-button"
-                                                            onClick={() =>
-                                                                handleApproveExchange(
-                                                                    item._id
-                                                                )
-                                                            }
-                                                            disabled={
-                                                                exchangeUpdatingItemId ===
-                                                                item._id
-                                                            }
-                                                        >
-
-                                                            {exchangeUpdatingItemId ===
-                                                            item._id
-                                                                ? "Processing..."
-                                                                : "✓ Approve Exchange"}
-
-                                                        </button>
-
-
-                                                        <button
-                                                            type="button"
-                                                            className="admin-exchange-reject-button"
-                                                            onClick={() =>
-                                                                handleRejectExchange(
-                                                                    item._id
-                                                                )
-                                                            }
-                                                            disabled={
-                                                                exchangeUpdatingItemId ===
-                                                                item._id
-                                                            }
-                                                        >
-
-                                                            {exchangeUpdatingItemId ===
-                                                            item._id
-                                                                ? "Processing..."
-                                                                : "✕ Reject Exchange"}
-
-                                                        </button>
-
-                                                    </div>
-
-                                                )}
-
-
-                                                {/* ==================================================
-                                                    APPROVED + DELIVERY PROCESS
-                                                ================================================== */}
-
-                                                {exchangeStatus ===
-                                                    "exchange_approved" && (
-
-                                                    <div className="admin-exchange-delivery-panel">
-
-
-                                                        <div className="admin-exchange-delivery-status">
-
-                                                            <span>
-                                                                Exchange Approved
-                                                            </span>
-
-
-                                                            <strong>
-
-                                                                {exchangeDeliveryStatus ===
-                                                                    "not_started" &&
-                                                                    "Ready to Process"}
-
-                                                                {exchangeDeliveryStatus ===
-                                                                    "processing" &&
-                                                                    "Processing"}
-
-                                                                {exchangeDeliveryStatus ===
-                                                                    "shipped" &&
-                                                                    "Shipped"}
-
-                                                                {exchangeDeliveryStatus ===
-                                                                    "delivered" &&
-                                                                    "Delivered"}
-
-                                                            </strong>
-
-                                                        </div>
-
-
-                                                        {exchangeDeliveryStatus ===
-                                                            "not_started" && (
-
-                                                            <button
-                                                                type="button"
-                                                                className="admin-exchange-process-button"
-                                                                onClick={() =>
-                                                                    handleProcessExchange(
-                                                                        item._id
-                                                                    )
-                                                                }
-                                                                disabled={
-                                                                    exchangeUpdatingItemId ===
-                                                                    item._id
-                                                                }
-                                                            >
-
-                                                                {exchangeUpdatingItemId ===
-                                                                item._id
-                                                                    ? "Processing..."
-                                                                    : "Start Processing"}
-
-                                                            </button>
-
-                                                        )}
-
-
-                                                        {exchangeDeliveryStatus ===
-                                                            "processing" && (
-
-                                                            <button
-                                                                type="button"
-                                                                className="admin-exchange-ship-button"
-                                                                onClick={() =>
-                                                                    handleShipExchange(
-                                                                        item._id
-                                                                    )
-                                                                }
-                                                                disabled={
-                                                                    exchangeUpdatingItemId ===
-                                                                    item._id
-                                                                }
-                                                            >
-
-                                                                {exchangeUpdatingItemId ===
-                                                                item._id
-                                                                    ? "Processing..."
-                                                                    : "🚚 Mark as Shipped"}
-
-                                                            </button>
-
-                                                        )}
-
-
-                                                        {exchangeDeliveryStatus ===
-                                                            "shipped" && (
-
-                                                            <button
-                                                                type="button"
-                                                                className="admin-exchange-deliver-button"
-                                                                onClick={() =>
-                                                                    handleDeliverExchange(
-                                                                        item._id
-                                                                    )
-                                                                }
-                                                                disabled={
-                                                                    exchangeUpdatingItemId ===
-                                                                    item._id
-                                                                }
-                                                            >
-
-                                                                {exchangeUpdatingItemId ===
-                                                                item._id
-                                                                    ? "Processing..."
-                                                                    : "✓ Mark as Delivered"}
-
-                                                            </button>
-
-                                                        )}
-
-
-                                                        {exchangeDeliveryStatus ===
-                                                            "delivered" && (
-
-                                                            <div className="admin-exchange-completed-message">
-
-                                                                ✓ Replacement product has been delivered.
-
-                                                            </div>
-
-                                                        )}
-
-                                                    </div>
-
-                                                )}
-
-
-                                                {/* ==================================================
-                                                    REJECTED
-                                                ================================================== */}
-
-                                                {exchangeStatus ===
-                                                    "exchange_rejected" && (
-
-                                                    <div className="admin-exchange-rejected-message">
-
-                                                        Exchange request has been rejected.
-
-                                                    </div>
-
-                                                )}
-
-
-                                                {/* ==================================================
-                                                    COMPLETED
-                                                ================================================== */}
-
-                                                {exchangeStatus ===
-                                                    "exchanged" && (
-
-                                                    <div className="admin-exchange-completed-message">
-
-                                                        ✓ Product exchange has been completed.
-
-                                                    </div>
-
-                                                )}
-
-
-                                            </div>
-
-                                        );
-
-                                    }
-
-                                )}
-
-                        </div>
-
-                    </div>
-
-                )}
-
-
-            </section>
 
 
         </div>
@@ -2111,4 +2012,5 @@ function AdminOrderDetails() {
 }
 
 
-export default AdminOrderDetails;
+
+export default AdminOrders;

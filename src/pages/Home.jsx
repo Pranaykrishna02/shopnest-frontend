@@ -1,34 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import {Link,useNavigate} from "react-router-dom";
+import {
+    Link,
+    useNavigate
+} from "react-router-dom";
 
 import ProductCard from "../components/ProductCard";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
-
 function Home() {
 
     const navigate = useNavigate();
 
-
     const [products, setProducts] = useState([]);
-
     const [categories, setCategories] = useState([]);
 
-
     const [loading, setLoading] = useState(true);
-
     const [categoryLoading, setCategoryLoading] = useState(true);
 
-
     const [error, setError] = useState("");
-
     const [categoryError, setCategoryError] = useState("");
 
-
     const [search, setSearch] = useState("");
-
 
     /*
     ======================================================
@@ -43,18 +37,14 @@ function Home() {
             try {
 
                 setLoading(true);
-
                 setError("");
-
 
                 const response = await fetch(
                     `${API_URL}/product/list`
                 );
 
-
                 const result =
                     await response.json();
-
 
                 if (
                     !response.ok ||
@@ -68,18 +58,15 @@ function Home() {
 
                 }
 
-
                 setProducts(
                     result.data || []
                 );
-
 
             } catch (error) {
 
                 setError(
                     error.message
                 );
-
 
             } finally {
 
@@ -88,7 +75,6 @@ function Home() {
             }
 
         };
-
 
         fetchProducts();
 
@@ -108,18 +94,14 @@ function Home() {
             try {
 
                 setCategoryLoading(true);
-
                 setCategoryError("");
-
 
                 const response = await fetch(
                     `${API_URL}/category/list`
                 );
 
-
                 const result =
                     await response.json();
-
 
                 if (
                     !response.ok ||
@@ -133,18 +115,15 @@ function Home() {
 
                 }
 
-
                 setCategories(
                     result.data || []
                 );
-
 
             } catch (error) {
 
                 setCategoryError(
                     error.message
                 );
-
 
             } finally {
 
@@ -153,7 +132,6 @@ function Home() {
             }
 
         };
-
 
         fetchCategories();
 
@@ -169,9 +147,117 @@ function Home() {
     const topDeals =
         products.slice(0, 8);
 
-
     const trendingProducts =
         products.slice(8, 16);
+
+
+    /*
+    ======================================================
+    MARQUEE REFERENCES
+    ======================================================
+    */
+
+    const categorySliderRef = useRef(null);
+    const dealsSliderRef = useRef(null);
+
+    const categoryPauseUntil = useRef(0);
+    const dealsPauseUntil = useRef(0);
+
+
+    /*
+    ======================================================
+    AUTOMATIC MARQUEE SCROLL
+    ======================================================
+    */
+
+    useEffect(() => {
+
+        let animationFrame;
+
+        const autoScroll = () => {
+
+            const now = Date.now();
+
+
+            /*
+            ==============================================
+            CATEGORY AUTO SCROLL
+            ==============================================
+            */
+
+            if (
+                categorySliderRef.current &&
+                now > categoryPauseUntil.current
+            ) {
+
+                const slider =
+                    categorySliderRef.current;
+
+                slider.scrollLeft += 0.7;
+
+                if (
+                    slider.scrollLeft >=
+                    slider.scrollWidth / 2
+                ) {
+
+                    slider.scrollLeft = 0;
+
+                }
+
+            }
+
+
+            /*
+            ==============================================
+            TOP DEALS AUTO SCROLL
+            ==============================================
+            */
+
+            if (
+                dealsSliderRef.current &&
+                now > dealsPauseUntil.current
+            ) {
+
+                const slider =
+                    dealsSliderRef.current;
+
+                slider.scrollLeft += 0.7;
+
+                if (
+                    slider.scrollLeft >=
+                    slider.scrollWidth / 2
+                ) {
+
+                    slider.scrollLeft = 0;
+
+                }
+
+            }
+
+
+            animationFrame =
+                requestAnimationFrame(
+                    autoScroll
+                );
+
+        };
+
+
+        animationFrame =
+            requestAnimationFrame(
+                autoScroll
+            );
+
+
+        return () => {
+
+            cancelAnimationFrame(
+                animationFrame
+            );
+
+        };
+
+    }, []);
 
 
     /*
@@ -184,10 +270,8 @@ function Home() {
 
         event.preventDefault();
 
-
         const searchValue =
             search.trim();
-
 
         if (!searchValue) {
 
@@ -196,7 +280,6 @@ function Home() {
             return;
 
         }
-
 
         navigate(
             `/products?search=${encodeURIComponent(
@@ -251,8 +334,6 @@ function Home() {
 
             {/* =================================================
                 SEARCH + SHORTCUT HEADER
-
-                Duplicate "My Store" header removed.
             ================================================= */}
 
             <section className="store-home-header">
@@ -437,7 +518,22 @@ function Home() {
                     !categoryError &&
                     categories.length > 0 && (
 
-                        <div className="store-category-slider">
+                        <div
+                            className="store-category-slider"
+                            ref={categorySliderRef}
+                            onMouseEnter={() => {
+                                categoryPauseUntil.current =
+                                    Date.now() + 3000;
+                            }}
+                            onWheel={() => {
+                                categoryPauseUntil.current =
+                                    Date.now() + 3000;
+                            }}
+                            onTouchStart={() => {
+                                categoryPauseUntil.current =
+                                    Date.now() + 4000;
+                            }}
+                        >
 
                             <div className="store-category-track">
 
@@ -497,6 +593,7 @@ function Home() {
                         </div>
 
                     )}
+
 
             </section>
 
@@ -636,7 +733,22 @@ function Home() {
                     !error &&
                     topDeals.length > 0 && (
 
-                        <div className="store-deals-slider">
+                        <div
+                            className="store-deals-slider"
+                            ref={dealsSliderRef}
+                            onMouseEnter={() => {
+                                dealsPauseUntil.current =
+                                    Date.now() + 3000;
+                            }}
+                            onWheel={() => {
+                                dealsPauseUntil.current =
+                                    Date.now() + 3000;
+                            }}
+                            onTouchStart={() => {
+                                dealsPauseUntil.current =
+                                    Date.now() + 4000;
+                            }}
+                        >
 
                             <div className="store-deals-track">
 
@@ -670,6 +782,7 @@ function Home() {
                         </div>
 
                     )}
+
 
             </section>
 
@@ -931,6 +1044,5 @@ function Home() {
     );
 
 }
-
 
 export default Home;

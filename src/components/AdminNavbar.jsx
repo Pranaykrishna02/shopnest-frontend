@@ -35,7 +35,7 @@ function AdminNavbar() {
                 </div>
 
                 <div>
-                    <strong>E-Commerce</strong>
+                    <strong>ShopNest</strong>
                     <span>Admin Panel</span>
                 </div>
             </div>

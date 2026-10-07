@@ -28,6 +28,8 @@ import AdminOrders from "./pages/AdminOrders";
 import AdminOrderDetails from "./pages/AdminOrderDetails";
 import Analytics from "./pages/Analytics";
 import ExchangeProduct from "./pages/ExchangeProduct";
+import Addresses from "./pages/Addresses";
+import AddressForm from "./pages/AddressForm";
 
 import "./App.css";
 
@@ -248,6 +250,32 @@ function AppContent() {
                       <ExchangeProduct />
                 }
               />
+              <Route
+                      path="/addresses"
+                        element={
+                      <ProtectedRoute>
+                         <Addresses />
+                     </ProtectedRoute>
+               }
+            />
+
+              <Route
+                      path="/addresses/new"
+                        element={
+                               <ProtectedRoute>
+                                 <AddressForm />
+                                    </ProtectedRoute>
+                 }
+           />
+
+               <Route
+                   path="/addresses/edit/:id"
+                             element={
+                                  <ProtectedRoute>
+                                      <AddressForm />
+                                      </ProtectedRoute>
+                }
+            />
 
             </Routes>
         </>

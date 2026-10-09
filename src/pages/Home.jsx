@@ -13,72 +13,24 @@ function Home() {
 
     const navigate = useNavigate();
 
-    const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
 
-    const [loading, setLoading] = useState(true);
-    const [categoryLoading, setCategoryLoading] = useState(true);
+    const [topDeals, setTopDeals] = useState([]);
+    const [trendingProducts, setTrendingProducts] = useState([]);
 
-    const [error, setError] = useState("");
-    const [categoryError, setCategoryError] = useState("");
+    const [categoryLoading, setCategoryLoading] =
+        useState(true);
+
+    const [topDealsLoading, setTopDealsLoading] =
+        useState(true);
+
+    const [trendingLoading, setTrendingLoading] =
+        useState(true);
+
+    const [categoryError, setCategoryError] =
+        useState("");
 
     const [search, setSearch] = useState("");
-
-    /*
-    ======================================================
-    FETCH PRODUCTS
-    ======================================================
-    */
-
-    useEffect(() => {
-
-        const fetchProducts = async () => {
-
-            try {
-
-                setLoading(true);
-                setError("");
-
-                const response = await fetch(
-                    `${API_URL}/product/list`
-                );
-
-                const result =
-                    await response.json();
-
-                if (
-                    !response.ok ||
-                    !result.status
-                ) {
-
-                    throw new Error(
-                        result.message ||
-                        "Failed to fetch products"
-                    );
-
-                }
-
-                setProducts(
-                    result.data || []
-                );
-
-            } catch (error) {
-
-                setError(
-                    error.message
-                );
-
-            } finally {
-
-                setLoading(false);
-
-            }
-
-        };
-
-        fetchProducts();
-
-    }, []);
 
 
     /*
@@ -107,12 +59,10 @@ function Home() {
                     !response.ok ||
                     !result.status
                 ) {
-
                     throw new Error(
                         result.message ||
                         "Failed to fetch categories"
                     );
-
                 }
 
                 setCategories(
@@ -140,15 +90,116 @@ function Home() {
 
     /*
     ======================================================
-    PRODUCT SECTIONS
+    FETCH DYNAMIC TOP DEALS
     ======================================================
     */
 
-    const topDeals =
-        products.slice(0, 8);
+    useEffect(() => {
 
-    const trendingProducts =
-        products.slice(8, 16);
+        const fetchTopDeals = async () => {
+
+            try {
+
+                setTopDealsLoading(true);
+
+                const response = await fetch(
+                    `${API_URL}/product/top-deals?limit=8`
+                );
+
+                const result =
+                    await response.json();
+
+                if (
+                    !response.ok ||
+                    !result.status
+                ) {
+                    throw new Error(
+                        result.message ||
+                        "Failed to fetch top deals"
+                    );
+                }
+
+                setTopDeals(
+                    result.data || []
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "Top Deals Error:",
+                    error
+                );
+
+                setTopDeals([]);
+
+            } finally {
+
+                setTopDealsLoading(false);
+
+            }
+
+        };
+
+        fetchTopDeals();
+
+    }, []);
+
+
+    /*
+    ======================================================
+    FETCH DYNAMIC TRENDING PRODUCTS
+    ======================================================
+    */
+
+    useEffect(() => {
+
+        const fetchTrendingProducts = async () => {
+
+            try {
+
+                setTrendingLoading(true);
+
+                const response = await fetch(
+                    `${API_URL}/product/trending?limit=8`
+                );
+
+                const result =
+                    await response.json();
+
+                if (
+                    !response.ok ||
+                    !result.status
+                ) {
+                    throw new Error(
+                        result.message ||
+                        "Failed to fetch trending products"
+                    );
+                }
+
+                setTrendingProducts(
+                    result.data || []
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "Trending Products Error:",
+                    error
+                );
+
+                setTrendingProducts([]);
+
+            } finally {
+
+                setTrendingLoading(false);
+
+            }
+
+        };
+
+        fetchTrendingProducts();
+
+    }, []);
 
 
     /*
@@ -157,11 +208,17 @@ function Home() {
     ======================================================
     */
 
-    const categorySliderRef = useRef(null);
-    const dealsSliderRef = useRef(null);
+    const categorySliderRef =
+        useRef(null);
 
-    const categoryPauseUntil = useRef(0);
-    const dealsPauseUntil = useRef(0);
+    const dealsSliderRef =
+        useRef(null);
+
+    const categoryPauseUntil =
+        useRef(0);
+
+    const dealsPauseUntil =
+        useRef(0);
 
 
     /*
@@ -187,7 +244,8 @@ function Home() {
 
             if (
                 categorySliderRef.current &&
-                now > categoryPauseUntil.current
+                now >
+                    categoryPauseUntil.current
             ) {
 
                 const slider =
@@ -215,7 +273,8 @@ function Home() {
 
             if (
                 dealsSliderRef.current &&
-                now > dealsPauseUntil.current
+                now >
+                    dealsPauseUntil.current
             ) {
 
                 const slider =
@@ -278,7 +337,6 @@ function Home() {
             navigate("/products");
 
             return;
-
         }
 
         navigate(
@@ -384,6 +442,7 @@ function Home() {
                         Search
                     </button>
 
+
                 </form>
 
 
@@ -488,6 +547,7 @@ function Home() {
                     <Link to="/products">
                         View All
                     </Link>
+
 
                 </div>
 
@@ -707,30 +767,30 @@ function Home() {
                 </div>
 
 
-                {loading && (
+                {topDealsLoading && (
 
                     <div className="store-home-message">
 
-                        Loading products...
+                        Loading top deals...
 
                     </div>
 
                 )}
 
 
-                {error && (
+                {!topDealsLoading &&
+                    topDeals.length === 0 && (
 
-                    <div className="store-home-error">
+                        <div className="store-home-message">
 
-                        {error}
+                            No top deals available right now.
 
-                    </div>
+                        </div>
 
-                )}
+                    )}
 
 
-                {!loading &&
-                    !error &&
+                {!topDealsLoading &&
                     topDeals.length > 0 && (
 
                         <div
@@ -829,34 +889,56 @@ function Home() {
                 TRENDING PRODUCTS
             ================================================= */}
 
-            {!loading &&
-                !error &&
-                trendingProducts.length > 0 && (
-
-                    <section className="store-home-section">
+            <section className="store-home-section">
 
 
-                        <div className="store-home-section-title">
+                <div className="store-home-section-title">
 
-                            <div>
+                    <div>
 
-                                <span>
-                                    TRENDING NOW
-                                </span>
+                        <span>
+                            TRENDING NOW
+                        </span>
 
-                                <h2>
-                                    Popular Products
-                                </h2>
+                        <h2>
+                            Popular Products
+                        </h2>
 
-                            </div>
+                    </div>
 
 
-                            <Link to="/products">
-                                View All
-                            </Link>
+                    <Link to="/products">
+                        View All
+                    </Link>
+
+                </div>
+
+
+                {trendingLoading && (
+
+                    <div className="store-home-message">
+
+                        Loading trending products...
+
+                    </div>
+
+                )}
+
+
+                {!trendingLoading &&
+                    trendingProducts.length === 0 && (
+
+                        <div className="store-home-message">
+
+                            No trending products available right now.
 
                         </div>
 
+                    )}
+
+
+                {!trendingLoading &&
+                    trendingProducts.length > 0 && (
 
                         <div className="store-product-grid">
 
@@ -877,10 +959,10 @@ function Home() {
 
                         </div>
 
+                    )}
 
-                    </section>
 
-                )}
+            </section>
 
 
             {/* =================================================

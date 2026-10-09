@@ -5,23 +5,54 @@ import { useCart } from "../context/CartContext";
 
 function Navbar() {
     const [menuOpen, setMenuOpen] = useState(false);
+    const [accountOpen, setAccountOpen] = useState(false);
 
-    const { currentUser, isLoggedIn, logout } = useAppContext();
-    const { cartItems } = useCart();
+    const {
+        currentUser,
+        isLoggedIn,
+        logout
+    } = useAppContext();
 
-    const totalItems = cartItems.reduce(
+    const {
+        cartItems = []
+    } = useCart();
+
+    // ======================================================
+    // CART COUNT
+    // ======================================================
+
+    const cartCount = cartItems.reduce(
         (total, item) =>
             total + Number(item.quantity || 0),
         0
     );
 
+    // ======================================================
+    // CLOSE MENU
+    // ======================================================
+
     const closeMenu = () => {
         setMenuOpen(false);
+        setAccountOpen(false);
     };
+
+    // ======================================================
+    // LOGOUT
+    // ======================================================
 
     const handleLogout = () => {
         logout();
         closeMenu();
+    };
+
+    // ======================================================
+    // ACCOUNT TOGGLE
+    // ======================================================
+
+    const toggleAccount = () => {
+        setAccountOpen(
+            (currentState) => !currentState
+        );
     };
 
     return (
@@ -29,7 +60,10 @@ function Navbar() {
 
             <div className="navbar-container">
 
-                {/* Logo */}
+                {/* ==================================================
+                    LOGO
+                ================================================== */}
+
                 <Link
                     to="/"
                     className="navbar-logo"
@@ -44,7 +78,11 @@ function Navbar() {
                     </span>
                 </Link>
 
-                {/* Desktop Navigation */}
+
+                {/* ==================================================
+                    DESKTOP NAVIGATION
+                ================================================== */}
+
                 <div className="desktop-nav">
 
                     <Link
@@ -68,7 +106,7 @@ function Navbar() {
                         🛒 Cart
 
                         <span className="cart-badge">
-                            {totalItems}
+                            {cartCount}
                         </span>
                     </Link>
 
@@ -81,43 +119,172 @@ function Navbar() {
                         </Link>
                     )}
 
-                    {isLoggedIn && (
-                        <Link
-                            to="/addresses"
-                            className="nav-link"
-                        >
-                            Addresses
-                        </Link>
-                    )}
-
                 </div>
 
-                {/* Desktop User Section */}
+
+                {/* ==================================================
+                    DESKTOP USER
+                ================================================== */}
+
                 <div className="desktop-user">
 
                     {isLoggedIn ? (
-                        <>
-                            <div className="user-avatar">
-                                👤
-                            </div>
+                        <div className="account-wrapper">
 
-                            <div className="user-details">
-                                <span className="user-email">
-                                    {currentUser?.email}
-                                </span>
-
-                                <span className="user-role">
-                                    {currentUser?.role}
-                                </span>
-                            </div>
+                            {/* ACCOUNT BUTTON */}
 
                             <button
-                                className="desktop-logout"
-                                onClick={handleLogout}
+                                type="button"
+                                className="account-button"
+                                onClick={toggleAccount}
+                                aria-expanded={
+                                    accountOpen
+                                }
+                                aria-label="Open account menu"
                             >
-                                Logout
+
+                                <div className="user-avatar">
+                                    👤
+                                </div>
+
+                                <div className="user-details">
+
+                                    <span className="user-email">
+                                        {currentUser?.email}
+                                    </span>
+
+                                    <span className="user-role">
+                                        {currentUser?.role}
+                                    </span>
+
+                                </div>
+
+                                <span
+                                    className={`account-arrow ${
+                                        accountOpen
+                                            ? "open"
+                                            : ""
+                                    }`}
+                                >
+                                    ▾
+                                </span>
+
                             </button>
-                        </>
+
+
+                            {/* ACCOUNT DROPDOWN */}
+
+                            {accountOpen && (
+                                <div className="account-dropdown">
+
+                                    {/* ACCOUNT HEADER */}
+
+                                    <div className="account-dropdown-header">
+
+                                        <div className="account-dropdown-avatar">
+                                            👤
+                                        </div>
+
+                                        <div className="account-dropdown-user">
+
+                                            <strong>
+                                                {currentUser?.email}
+                                            </strong>
+
+                                            <span>
+                                                {currentUser?.role}
+                                            </span>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div className="account-dropdown-divider"></div>
+
+
+                                    {/* MY ORDERS */}
+
+                                    <Link
+                                        to="/orders"
+                                        className="account-dropdown-item"
+                                        onClick={
+                                            closeMenu
+                                        }
+                                    >
+                                        <span className="account-item-icon">
+                                            📦
+                                        </span>
+
+                                        <span>
+                                            My Orders
+                                        </span>
+                                    </Link>
+
+
+                                    {/* MANAGE ADDRESSES */}
+
+                                    <Link
+                                        to="/addresses"
+                                        className="account-dropdown-item"
+                                        onClick={
+                                            closeMenu
+                                        }
+                                    >
+                                        <span className="account-item-icon">
+                                            📍
+                                        </span>
+
+                                        <span>
+                                            Manage Addresses
+                                        </span>
+                                    </Link>
+
+
+                                    {/* CHANGE PASSWORD */}
+
+                                    <Link
+                                        to="/change-password"
+                                        className="account-dropdown-item"
+                                        onClick={
+                                            closeMenu
+                                        }
+                                    >
+                                        <span className="account-item-icon">
+                                            🔐
+                                        </span>
+
+                                        <span>
+                                            Change Password
+                                        </span>
+                                    </Link>
+
+
+                                    <div className="account-dropdown-divider"></div>
+
+
+                                    {/* LOGOUT */}
+
+                                    <button
+                                        type="button"
+                                        className="account-dropdown-logout"
+                                        onClick={
+                                            handleLogout
+                                        }
+                                    >
+                                        <span className="account-item-icon">
+                                            ↪
+                                        </span>
+
+                                        <span>
+                                            Logout
+                                        </span>
+                                    </button>
+
+                                </div>
+                            )}
+
+                        </div>
                     ) : (
                         <>
                             <Link
@@ -138,13 +305,19 @@ function Navbar() {
 
                 </div>
 
-                {/* Hamburger Button */}
+
+                {/* ==================================================
+                    MOBILE HAMBURGER
+                ================================================== */}
+
                 <button
                     className={`hamburger ${
                         menuOpen ? "active" : ""
                     }`}
                     onClick={() =>
-                        setMenuOpen(!menuOpen)
+                        setMenuOpen(
+                            !menuOpen
+                        )
                     }
                     aria-label="Toggle navigation"
                     aria-expanded={menuOpen}
@@ -156,14 +329,19 @@ function Navbar() {
 
             </div>
 
-            {/* Mobile Menu */}
+
+            {/* ==================================================
+                MOBILE MENU
+            ================================================== */}
+
             <div
                 className={`mobile-menu ${
                     menuOpen ? "open" : ""
                 }`}
             >
 
-                {/* Mobile User */}
+                {/* MOBILE USER */}
+
                 {isLoggedIn && (
                     <div className="mobile-user">
 
@@ -172,6 +350,7 @@ function Navbar() {
                         </div>
 
                         <div>
+
                             <div className="mobile-user-email">
                                 {currentUser?.email}
                             </div>
@@ -179,12 +358,15 @@ function Navbar() {
                             <div className="mobile-user-role">
                                 {currentUser?.role}
                             </div>
+
                         </div>
 
                     </div>
                 )}
 
-                {/* Home */}
+
+                {/* HOME */}
+
                 <Link
                     to="/"
                     className="mobile-nav-link"
@@ -194,7 +376,9 @@ function Navbar() {
                     Home
                 </Link>
 
-                {/* Products */}
+
+                {/* PRODUCTS */}
+
                 <Link
                     to="/products"
                     className="mobile-nav-link"
@@ -204,21 +388,26 @@ function Navbar() {
                     Products
                 </Link>
 
-                {/* Cart */}
+
+                {/* CART */}
+
                 <Link
                     to="/cart"
                     className="mobile-nav-link"
                     onClick={closeMenu}
                 >
                     <span>🛒</span>
+
                     Cart
 
                     <span className="mobile-cart-badge">
-                        {totalItems}
+                        {cartCount}
                     </span>
                 </Link>
 
-                {/* My Orders */}
+
+                {/* MY ORDERS */}
+
                 {isLoggedIn && (
                     <Link
                         to="/orders"
@@ -230,7 +419,9 @@ function Navbar() {
                     </Link>
                 )}
 
-                {/* Addresses */}
+
+                {/* MANAGE ADDRESSES */}
+
                 {isLoggedIn && (
                     <Link
                         to="/addresses"
@@ -238,13 +429,30 @@ function Navbar() {
                         onClick={closeMenu}
                     >
                         <span>📍</span>
-                        Addresses
+                        Manage Addresses
                     </Link>
                 )}
 
+
+                {/* CHANGE PASSWORD */}
+
+                {isLoggedIn && (
+                    <Link
+                        to="/change-password"
+                        className="mobile-nav-link"
+                        onClick={closeMenu}
+                    >
+                        <span>🔐</span>
+                        Change Password
+                    </Link>
+                )}
+
+
                 <div className="mobile-menu-divider"></div>
 
-                {/* Logged In */}
+
+                {/* LOGOUT / LOGIN */}
+
                 {isLoggedIn ? (
                     <button
                         className="mobile-logout"
@@ -255,7 +463,6 @@ function Navbar() {
                     </button>
                 ) : (
                     <>
-                        {/* Login */}
                         <Link
                             to="/login"
                             className="mobile-nav-link"
@@ -265,7 +472,6 @@ function Navbar() {
                             Login
                         </Link>
 
-                        {/* Register */}
                         <Link
                             to="/register"
                             className="mobile-register-btn"

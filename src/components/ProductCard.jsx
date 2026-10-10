@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -14,7 +15,12 @@ function ProductCard({ product }) {
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
 
+    if (!product) {
+        return null;
+    }
+
     const productId = product._id;
+    const isOutOfStock = Number(product.stock) < 1;
 
     const handleAddToCart = async () => {
         if (!isLoggedIn) {
@@ -24,11 +30,13 @@ function ProductCard({ product }) {
 
         if (!productId) {
             setError("Product ID is missing");
+            setMessage("");
             return;
         }
 
-        if (product.stock < 1) {
+        if (isOutOfStock) {
             setError("Product is out of stock");
+            setMessage("");
             return;
         }
 
@@ -37,80 +45,96 @@ function ProductCard({ product }) {
             setMessage("");
             setError("");
 
-            const result = await addToCart(
-                productId,
-                1
-            );
+            const result = await addToCart(productId, 1);
 
-            if (!result.success) {
-                setError(result.message);
+            if (!result?.success) {
+                setError(
+                    result?.message || "Unable to add product to cart"
+                );
                 return;
             }
 
             setMessage(
-                result.message ||
-                "Product added to cart successfully"
+                result.message || "Product added to cart successfully"
             );
-        } catch (error) {
-            setError(error.message);
+        } catch (err) {
+            setError(err.message || "Something went wrong");
         } finally {
             setAdding(false);
         }
     };
 
     return (
-        <div className="product-card">
-
-            <img
-                src={
-                    product.image ||
-                    "https://via.placeholder.com/300?text=No+Image"
-                }
-                alt={product.name}
-            />
-
-            <h3>{product.name}</h3>
-
-            <p>
-                {product.categoryId?.name ||
-                    "Category not available"}
-            </p>
-
-            <h4>₹{product.price}</h4>
-
-            {message && (
-                <div className="product-cart-success">
-                    {message}
-                </div>
-            )}
-
-            {error && (
-                <div className="product-cart-error">
-                    {error}
-                </div>
-            )}
-
-            <Link to={`/products/${productId}`}>
-                <button>
-                    View Details
-                </button>
+        <article className="product-card">
+            <Link
+                to={`/products/${productId}`}
+                className="product-card-image-link"
+                aria-label={`View ${product.name}`}
+            >
+                <img
+                    className="product-card-image"
+                    src={
+                        product.image ||
+                        "https://via.placeholder.com/300?text=No+Image"
+                    }
+                    alt={product.name || "Product"}
+                    loading="lazy"
+                />
             </Link>
 
-            <button
-                onClick={handleAddToCart}
-                disabled={
-                    adding ||
-                    product.stock < 1
-                }
-            >
-                {adding
-                    ? "Adding..."
-                    : product.stock < 1
-                    ? "Out of Stock"
-                    : "Add to Cart"}
-            </button>
+            <div className="product-card-content">
+                <h3>{product.name || "Unnamed Product"}</h3>
 
-        </div>
+                <p className="product-card-category">
+                    {product.categoryId?.name ||
+                        "Category not available"}
+                </p>
+
+                <h4 className="product-card-price">
+                    ₹{product.price}
+                </h4>
+
+                {message && (
+                    <div
+                        className="product-cart-success"
+                        role="status"
+                    >
+                        {message}
+                    </div>
+                )}
+
+                {error && (
+                    <div
+                        className="product-cart-error"
+                        role="alert"
+                    >
+                        {error}
+                    </div>
+                )}
+
+                <div className="product-card-actions">
+                    <Link
+                        to={`/products/${productId}`}
+                        className="product-card-button"
+                    >
+                        View Details
+                    </Link>
+
+                    <button
+                        type="button"
+                        className="product-card-button"
+                        onClick={handleAddToCart}
+                        disabled={adding || isOutOfStock}
+                    >
+                        {adding
+                            ? "Adding..."
+                            : isOutOfStock
+                            ? "Out of Stock"
+                            : "Add to Cart"}
+                    </button>
+                </div>
+            </div>
+        </article>
     );
 }
 

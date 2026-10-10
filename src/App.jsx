@@ -1,10 +1,6 @@
+
 import { useState } from "react";
-import {
-    BrowserRouter,
-    Routes,
-    Route,
-    useLocation
-} from "react-router-dom";
+import {BrowserRouter,Routes, Route,useLocation} from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -48,32 +44,22 @@ function AppContent() {
     const isAdminPage =
         location.pathname.startsWith("/admin");
 
-    // ======================================================
     // ADD TO CART
-    // ======================================================
-
-    const addToCart = (
-        product,
-        quantity = 1
-    ) => {
+    const addToCart = (product, quantity = 1) => {
         setCartItems((currentItems) => {
-            const existingItem =
-                currentItems.find(
-                    (item) =>
-                        item.id === product.id
-                );
+            const existingItem = currentItems.find(
+                (item) => item.id === product.id
+            );
 
             if (existingItem) {
-                return currentItems.map(
-                    (item) =>
-                        item.id === product.id
-                            ? {
-                                  ...item,
-                                  quantity:
-                                      item.quantity +
-                                      quantity
-                              }
-                            : item
+                return currentItems.map((item) =>
+                    item.id === product.id
+                        ? {
+                              ...item,
+                              quantity:
+                                  item.quantity + quantity
+                          }
+                        : item
                 );
             }
 
@@ -87,14 +73,8 @@ function AppContent() {
         });
     };
 
-    // ======================================================
     // UPDATE CART QUANTITY
-    // ======================================================
-
-    const updateQuantity = (
-        productId,
-        quantity
-    ) => {
+    const updateQuantity = (productId, quantity) => {
         if (quantity < 1) {
             return;
         }
@@ -111,31 +91,21 @@ function AppContent() {
         );
     };
 
-    // ======================================================
     // REMOVE FROM CART
-    // ======================================================
-
     const removeFromCart = (productId) => {
         setCartItems((currentItems) =>
             currentItems.filter(
-                (item) =>
-                    item.id !== productId
+                (item) => item.id !== productId
             )
         );
     };
 
-    // ======================================================
     // CLEAR CART
-    // ======================================================
-
     const clearCart = () => {
         setCartItems([]);
     };
 
-    // ======================================================
     // CART COUNT
-    // ======================================================
-
     const cartCount = cartItems.reduce(
         (total, item) =>
             total + Number(item.quantity || 0),
@@ -149,27 +119,18 @@ function AppContent() {
             )}
 
             <Routes>
-
-                {/* ==================================================
-                    HOME
-                ================================================== */}
-
+                {/* HOME */}
                 <Route
                     path="/"
                     element={<Home />}
                 />
 
-                {/* ==================================================
-                    PRODUCTS
-                ================================================== */}
-
+                {/* PRODUCTS */}
                 <Route
                     path="/products"
                     element={
                         <Products
-                            onAddToCart={
-                                addToCart
-                            }
+                            onAddToCart={addToCart}
                         />
                     }
                 />
@@ -178,17 +139,12 @@ function AppContent() {
                     path="/products/:id"
                     element={
                         <ProductDetails
-                            onAddToCart={
-                                addToCart
-                            }
+                            onAddToCart={addToCart}
                         />
                     }
                 />
 
-                {/* ==================================================
-                    AUTHENTICATION
-                ================================================== */}
-
+                {/* AUTHENTICATION */}
                 <Route
                     path="/register"
                     element={<Register />}
@@ -199,56 +155,34 @@ function AppContent() {
                     element={<Login />}
                 />
 
-                {/* ==================================================
-                    CART
-                ================================================== */}
-
+                {/* CART */}
                 <Route
                     path="/cart"
                     element={
                         <ProtectedRoute>
                             <Cart
-                                cartItems={
-                                    cartItems
-                                }
-                                updateQuantity={
-                                    updateQuantity
-                                }
-                                removeFromCart={
-                                    removeFromCart
-                                }
-                                clearCart={
-                                    clearCart
-                                }
+                                cartItems={cartItems}
+                                updateQuantity={updateQuantity}
+                                removeFromCart={removeFromCart}
+                                clearCart={clearCart}
                             />
                         </ProtectedRoute>
                     }
                 />
 
-                {/* ==================================================
-                    CHECKOUT
-                ================================================== */}
-
+                {/* CHECKOUT */}
                 <Route
                     path="/checkout"
                     element={<Checkout />}
                 />
 
-                {/* ==================================================
-                    ORDER CONFIRMATION
-                ================================================== */}
-
+                {/* ORDER CONFIRMATION */}
                 <Route
                     path="/order-confirmation/:orderId"
-                    element={
-                        <OrderConfirmation />
-                    }
+                    element={<OrderConfirmation />}
                 />
 
-                {/* ==================================================
-                    CUSTOMER ORDERS
-                ================================================== */}
-
+                {/* CUSTOMER ORDERS */}
                 <Route
                     path="/orders"
                     element={<Orders />}
@@ -259,21 +193,13 @@ function AppContent() {
                     element={<OrderDetails />}
                 />
 
-                {/* ==================================================
-                    EXCHANGE PRODUCT
-                ================================================== */}
-
+                {/* EXCHANGE PRODUCT */}
                 <Route
                     path="/exchange/:orderId/:itemId"
-                    element={
-                        <ExchangeProduct />
-                    }
+                    element={<ExchangeProduct />}
                 />
 
-                {/* ==================================================
-                    ADDRESSES
-                ================================================== */}
-
+                {/* ADDRESSES */}
                 <Route
                     path="/addresses"
                     element={
@@ -301,41 +227,25 @@ function AppContent() {
                     }
                 />
 
-                {/* ==================================================
-                    FORGOT PASSWORD
-                ================================================== */}
-
+                {/* FORGOT PASSWORD */}
                 <Route
                     path="/forgot-password"
-                    element={
-                        <ForgotPassword />
-                    }
+                    element={<ForgotPassword />}
                 />
 
-                {/* ==================================================
-                    RESET PASSWORD
-                ================================================== */}
-
-                {/* Direct reset page */}
+                {/* RESET PASSWORD WITHOUT TOKEN */}
                 <Route
                     path="/reset-password"
-                    element={
-                        <ResetPassword />
-                    }
+                    element={<ForgotPassword />}
                 />
 
-                {/* Reset page with token */}
+                {/* RESET PASSWORD WITH TOKEN */}
                 <Route
                     path="/reset-password/:token"
-                    element={
-                        <ResetPassword />
-                    }
+                    element={<ResetPassword />}
                 />
 
-                {/* ==================================================
-                    CHANGE PASSWORD
-                ================================================== */}
-
+                {/* CHANGE PASSWORD */}
                 <Route
                     path="/change-password"
                     element={
@@ -345,10 +255,7 @@ function AppContent() {
                     }
                 />
 
-                {/* ==================================================
-                    ADMIN DASHBOARD
-                ================================================== */}
-
+                {/* ADMIN DASHBOARD */}
                 <Route
                     path="/admin"
                     element={
@@ -360,10 +267,7 @@ function AppContent() {
                     }
                 />
 
-                {/* ==================================================
-                    ADMIN PRODUCTS
-                ================================================== */}
-
+                {/* ADMIN PRODUCTS */}
                 <Route
                     path="/admin/products"
                     element={
@@ -375,10 +279,7 @@ function AppContent() {
                     }
                 />
 
-                {/* ==================================================
-                    ADMIN CATEGORIES
-                ================================================== */}
-
+                {/* ADMIN CATEGORIES */}
                 <Route
                     path="/admin/categories"
                     element={
@@ -390,10 +291,7 @@ function AppContent() {
                     }
                 />
 
-                {/* ==================================================
-                    ADMIN ORDERS
-                ================================================== */}
-
+                {/* ADMIN ORDERS */}
                 <Route
                     path="/admin/orders"
                     element={
@@ -416,10 +314,7 @@ function AppContent() {
                     }
                 />
 
-                {/* ==================================================
-                    ADMIN ANALYTICS
-                ================================================== */}
-
+                {/* ADMIN ANALYTICS */}
                 <Route
                     path="/admin/analytics"
                     element={
@@ -430,7 +325,6 @@ function AppContent() {
                         </AdminRoute>
                     }
                 />
-
             </Routes>
         </>
     );

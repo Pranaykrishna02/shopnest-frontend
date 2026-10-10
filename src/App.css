@@ -1263,40 +1263,59 @@ a {
   color: #b42318;
 }
 
+
+/* Responsive pagination */
 .pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  margin: 30px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 24px 0;
+    padding: 0 8px;
 }
 
 .pagination button {
-  min-width: 40px;
-  height: 40px;
-  padding: 0 12px;
-  border: 1px solid #d8dce5;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #333333;
-  cursor: pointer;
-  font-size: 14px;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 8px;
+    border: 1px solid #d8dce5;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #333333;
+    cursor: pointer;
+    font-size: 13px;
 }
 
 .pagination button:hover:not(:disabled) {
-  background: #f3f4f6;
+    background: #f3f4f6;
 }
 
 .pagination button.active {
-  background: #4f46e5;
-  color: #ffffff;
-  border-color: #4f46e5;
+    background: #4f46e5;
+    color: #ffffff;
+    border-color: #4f46e5;
 }
 
 .pagination button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+    opacity: 0.5;
+    cursor: not-allowed;
 }
+
+@media (max-width: 600px) {
+    .pagination {
+        gap: 5px;
+        padding: 0 10px;
+    }
+
+    .pagination button {
+        min-width: 32px;
+        height: 34px;
+        padding: 0 6px;
+        font-size: 12px;
+    }
+}
+
 
 /* =========================================
    5. PRODUCT DETAILS

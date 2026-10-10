@@ -12294,3 +12294,227 @@ iframe {
     font-size: 11px;
   }
 }
+
+/* Admin Product Action Buttons */
+.products-table td:last-child {
+    white-space: nowrap;
+}
+
+.products-table td:last-child .edit-product-button,
+.products-table td:last-child .delete-product-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 76px;
+    height: 40px;
+    padding: 0 14px;
+    margin: 0 6px 0 0;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+/* Edit */
+.products-table td:last-child .edit-product-button {
+    color: #2563eb;
+    background: #eff6ff;
+}
+
+.products-table td:last-child .edit-product-button:hover {
+    background: #dbeafe;
+    transform: translateY(-1px);
+}
+
+/* Delete */
+.products-table td:last-child .delete-product-button {
+    color: #dc2626;
+    background: #fef2f2;
+}
+
+.products-table td:last-child .delete-product-button:hover {
+    background: #fee2e2;
+    transform: translateY(-1px);
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+    .products-table td:last-child {
+        white-space: normal;
+    }
+
+    .products-table td:last-child .edit-product-button,
+    .products-table td:last-child .delete-product-button {
+        min-width: 68px;
+        margin: 3px;
+    }
+}
+
+/* Search toolbar */
+.admin-products-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 22px 0;
+    flex-wrap: wrap;
+}
+
+.admin-products-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 480px;
+    min-height: 46px;
+    padding: 0 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.admin-products-search:focus-within {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.admin-search-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    color: #64748b;
+}
+
+.admin-products-search input {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #1e293b;
+    font-size: 14px;
+    box-shadow: none;
+}
+
+.admin-products-search input:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.admin-products-search input::placeholder {
+    color: #94a3b8;
+}
+
+.admin-search-clear {
+    padding: 2px 4px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-size: 23px;
+    cursor: pointer;
+}
+
+.admin-search-clear:hover {
+    color: #dc2626;
+}
+
+.admin-products-count {
+    color: #64748b;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+/* Product action buttons */
+.admin-product-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.admin-product-actions .edit-product-button,
+.admin-product-actions .delete-product-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 68px;
+    height: 38px;
+    margin: 0;
+    padding: 0 12px;
+    border: none;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.admin-product-actions .edit-product-button {
+    color: #2563eb;
+    background: #eff6ff;
+}
+
+.admin-product-actions .edit-product-button:hover {
+    background: #dbeafe;
+    transform: translateY(-1px);
+}
+
+.admin-product-actions .delete-product-button {
+    color: #dc2626;
+    background: #fef2f2;
+}
+
+.admin-product-actions .delete-product-button:hover {
+    background: #fee2e2;
+    transform: translateY(-1px);
+}
+
+/* Status labels */
+.admin-product-status {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: lowercase;
+}
+
+.admin-product-status.status-active {
+    color: #15803d;
+}
+
+.admin-product-status.status-inactive {
+    color: #dc2626;
+}
+
+/* Responsive table and search */
+.products-table-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 600px) {
+    .admin-products-toolbar {
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .admin-products-search {
+        max-width: 100%;
+    }
+
+    .admin-products-count {
+        align-self: flex-end;
+    }
+
+    .products-table {
+        min-width: 760px;
+    }
+}

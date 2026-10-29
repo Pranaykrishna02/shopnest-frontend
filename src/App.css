@@ -13861,3 +13861,36 @@ iframe {
         height: 220px;
     }
 }
+
+.product-card-image-container {
+    position: relative;
+}
+
+.product-wishlist-heart {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 48px;
+    height: 48px;
+    border: none;
+    border-radius: 50%;
+    background: #fff;
+    color: #777;
+    font-size: 25px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    z-index: 2;
+}
+
+.product-wishlist-heart.active {
+    background: #2563eb;
+    color: #fff;
+}
+
+.product-wishlist-heart:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}

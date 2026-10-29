@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import { useAppContext } from "../context/Context";
 import { useWishlist } from "../context/WishlistContext";
 
@@ -11,13 +12,16 @@ function WishlistButton({ product, className = "" }) {
     const {
         addToWishlist,
         removeFromWishlist,
-        isWishlisted
+        isWishlisted,
     } = useWishlist();
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    const productId = String(product?._id ?? product?.id ?? "");
+    const productId = String(
+        product?._id ?? product?.id ?? ""
+    );
+
     const wishlisted = isWishlisted(productId);
 
     const handleWishlist = async (event) => {
@@ -29,7 +33,9 @@ function WishlistButton({ product, className = "" }) {
             return;
         }
 
-        if (!productId || loading) return;
+        if (!productId || loading) {
+            return;
+        }
 
         setLoading(true);
         setError("");
@@ -41,14 +47,18 @@ function WishlistButton({ product, className = "" }) {
                 await addToWishlist(productId);
             }
         } catch (err) {
-            setError(err.message || "Wishlist update failed");
+            setError(
+                err.message || "Wishlist update failed"
+            );
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className={`wishlist-button-wrapper ${className}`}>
+        <div
+            className={`wishlist-button-wrapper ${className}`}
+        >
             <button
                 type="button"
                 className={`wishlist-heart ${
@@ -68,11 +78,18 @@ function WishlistButton({ product, className = "" }) {
                         : "Add to Wishlist"
                 }
             >
-                {loading ? "…" : wishlisted ? "❤️" : "🤍"}
+                {loading
+                    ? "…"
+                    : wishlisted
+                    ? "❤️"
+                    : "🤍"}
             </button>
 
             {error && (
-                <span className="wishlist-button-error" role="alert">
+                <span
+                    className="wishlist-button-error"
+                    role="alert"
+                >
                     {error}
                 </span>
             )}

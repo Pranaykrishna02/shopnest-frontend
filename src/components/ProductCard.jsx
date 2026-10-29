@@ -15,12 +15,11 @@ function ProductCard({ product }) {
     const {
         addToWishlist,
         removeFromWishlist,
-        isWishlisted
+        isWishlisted,
     } = useWishlist();
 
     const [adding, setAdding] = useState(false);
     const [wishlistLoading, setWishlistLoading] = useState(false);
-    const [message, setMessage] = useState("");
     const [error, setError] = useState("");
 
     if (!product) {
@@ -40,35 +39,31 @@ function ProductCard({ product }) {
 
         if (!productId) {
             setError("Product ID is missing");
-            setMessage("");
             return;
         }
 
         if (isOutOfStock) {
             setError("Product is out of stock");
-            setMessage("");
             return;
         }
 
         try {
             setAdding(true);
-            setMessage("");
             setError("");
 
             const result = await addToCart(productId, 1);
 
             if (!result?.success) {
                 setError(
-                    result?.message || "Unable to add product to cart"
+                    result?.message ||
+                    "Unable to add product to cart"
                 );
                 return;
             }
-
-            setMessage(
-                result.message || "Product added to cart successfully"
-            );
         } catch (err) {
-            setError(err.message || "Something went wrong");
+            setError(
+                err.message || "Something went wrong"
+            );
         } finally {
             setAdding(false);
         }
@@ -88,17 +83,16 @@ function ProductCard({ product }) {
         try {
             setWishlistLoading(true);
             setError("");
-            setMessage("");
 
             if (wishlisted) {
                 await removeFromWishlist(productId);
-                setMessage("Product removed from Wishlist");
             } else {
                 await addToWishlist(productId);
-                setMessage("Product added to Wishlist ❤️");
             }
         } catch (err) {
-            setError(err.message || "Wishlist update failed");
+            setError(
+                err.message || "Wishlist update failed"
+            );
         } finally {
             setWishlistLoading(false);
         }
@@ -106,14 +100,12 @@ function ProductCard({ product }) {
 
     return (
         <article className="product-card">
-
             {/* PRODUCT IMAGE */}
             <div className="product-card-image-container">
-
                 <Link
                     to={`/products/${productId}`}
                     className="product-card-image-link"
-                    aria-label={`View ${product.name}`}
+                    aria-label={`View ${product.name || "product"}`}
                 >
                     <img
                         className="product-card-image"
@@ -156,7 +148,9 @@ function ProductCard({ product }) {
 
             {/* PRODUCT CONTENT */}
             <div className="product-card-content">
-                <h3>{product.name || "Unnamed Product"}</h3>
+                <h3>
+                    {product.name || "Unnamed Product"}
+                </h3>
 
                 <p className="product-card-category">
                     {product.categoryId?.name ||
@@ -167,15 +161,7 @@ function ProductCard({ product }) {
                     ₹{product.price}
                 </h4>
 
-                {message && (
-                    <div
-                        className="product-cart-success"
-                        role="status"
-                    >
-                        {message}
-                    </div>
-                )}
-
+                {/* ERROR ONLY - NO WISHLIST SUCCESS MESSAGE */}
                 {error && (
                     <div
                         className="product-cart-error"

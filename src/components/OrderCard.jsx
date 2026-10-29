@@ -1,3 +1,4 @@
+
 import { useNavigate } from "react-router-dom";
 import OrderStatus from "./OrderStatus";
 
@@ -8,13 +9,13 @@ function OrderCard({ order }) {
         ? order.items
         : [];
 
+    const isDelivered =
+        String(order.status || "").toLowerCase() ===
+        "delivered";
+
     return (
         <div className="order-card">
-
-            {/* ================================
-                ORDER HEADER
-            ================================= */}
-
+            {/* ORDER HEADER */}
             <div className="order-card-header">
                 <div>
                     <h2>Order #{order._id}</h2>
@@ -30,21 +31,19 @@ function OrderCard({ order }) {
                 <OrderStatus status={order.status} />
             </div>
 
-
-            {/* ================================
-                PRODUCT PREVIEW
-            ================================= */}
-
+            {/* ORDERED PRODUCTS */}
             {items.length > 0 && (
                 <div className="orders-product-preview">
-
                     {items.map((item, index) => {
-
                         const product =
                             item.productId &&
                             typeof item.productId === "object"
                                 ? item.productId
                                 : null;
+
+                        const productId =
+                            product?._id ||
+                            item.productId;
 
                         const productImage =
                             product?.image ||
@@ -60,27 +59,23 @@ function OrderCard({ order }) {
                         const quantity =
                             Number(item.quantity || 1);
 
-                        const price =
-                            Number(
-                                item.price ||
-                                product?.price ||
-                                0
-                            );
+                        const price = Number(
+                            item.price ||
+                            product?.price ||
+                            0
+                        );
 
                         return (
                             <div
                                 className="orders-product-item"
                                 key={
                                     item._id ||
-                                    product?._id ||
+                                    productId ||
                                     index
                                 }
                             >
-
                                 {/* PRODUCT IMAGE */}
-
                                 <div className="orders-product-image">
-
                                     {productImage ? (
                                         <img
                                             src={productImage}
@@ -111,23 +106,15 @@ function OrderCard({ order }) {
                                     >
                                         🛍️
                                     </div>
-
                                 </div>
 
-
                                 {/* PRODUCT INFORMATION */}
-
                                 <div className="orders-product-info">
-
-                                    <h3>
-                                        {productName}
-                                    </h3>
+                                    <h3>{productName}</h3>
 
                                     <p>
                                         Qty:{" "}
-                                        <strong>
-                                            {quantity}
-                                        </strong>
+                                        <strong>{quantity}</strong>
                                     </p>
 
                                     <p>
@@ -137,38 +124,40 @@ function OrderCard({ order }) {
                                         )}
                                     </p>
 
+                                    {/* REVIEW BUTTON */}
+                                    {isDelivered &&
+                                        productId && (
+                                            <button
+                                                type="button"
+                                                className="order-review-button"
+                                                onClick={() =>
+                                                    navigate(
+                                                        `/products/${productId}/review`
+                                                    )
+                                                }
+                                            >
+                                                ★ Review
+                                            </button>
+                                        )}
                                 </div>
-
                             </div>
                         );
                     })}
-
                 </div>
             )}
 
-
-            {/* ================================
-                ORDER CONTENT
-            ================================= */}
-
+            {/* ORDER SUMMARY */}
             <div className="order-card-content">
-
                 <div>
                     <strong>Items</strong>
-
                     <p>
-                        {items.length}{" "}
-                        product
-                        {items.length !== 1
-                            ? "s"
-                            : ""}
+                        {items.length} product
+                        {items.length !== 1 ? "s" : ""}
                     </p>
                 </div>
 
-
                 <div>
                     <strong>Total Amount</strong>
-
                     <p>
                         ₹
                         {Number(
@@ -177,37 +166,26 @@ function OrderCard({ order }) {
                     </p>
                 </div>
 
-
                 <div>
                     <strong>Payment</strong>
-
                     <p>
                         {order.paymentMethod ||
                             "Not available"}
                     </p>
                 </div>
-
             </div>
 
-
-            {/* ================================
-                ORDER FOOTER
-            ================================= */}
-
+            {/* ORDER FOOTER */}
             <div className="order-card-footer">
-
                 <button
+                    type="button"
                     onClick={() =>
-                        navigate(
-                            `/orders/${order._id}`
-                        )
+                        navigate(`/orders/${order._id}`)
                     }
                 >
                     View Details
                 </button>
-
             </div>
-
         </div>
     );
 }

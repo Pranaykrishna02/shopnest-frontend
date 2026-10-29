@@ -1,7 +1,9 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAppContext } from "../context/Context";
 import { useCart } from "../context/CartContext";
+import { useWishlist } from "../context/WishlistContext";
 
 function Navbar() {
     const [menuOpen, setMenuOpen] = useState(false);
@@ -17,74 +19,50 @@ function Navbar() {
         cartItems = []
     } = useCart();
 
-    // ======================================================
-    // CART COUNT
-    // ======================================================
+    const {
+        wishlistCount = 0
+    } = useWishlist();
 
+    // CART COUNT
     const cartCount = cartItems.reduce(
         (total, item) =>
             total + Number(item.quantity || 0),
         0
     );
 
-    // ======================================================
     // CLOSE MENU
-    // ======================================================
-
     const closeMenu = () => {
         setMenuOpen(false);
         setAccountOpen(false);
     };
 
-    // ======================================================
     // LOGOUT
-    // ======================================================
-
     const handleLogout = () => {
         logout();
         closeMenu();
     };
 
-    // ======================================================
     // ACCOUNT TOGGLE
-    // ======================================================
-
     const toggleAccount = () => {
-        setAccountOpen(
-            (currentState) => !currentState
-        );
+        setAccountOpen((currentState) => !currentState);
     };
 
     return (
         <nav className="navbar">
-
             <div className="navbar-container">
 
-                {/* ==================================================
-                    LOGO
-                ================================================== */}
-
+                {/* LOGO */}
                 <Link
                     to="/"
                     className="navbar-logo"
                     onClick={closeMenu}
                 >
-                    <span className="logo-icon">
-                        🛍️
-                    </span>
-
-                    <span>
-                        ShopNest
-                    </span>
+                    <span className="logo-icon">🛍️</span>
+                    <span>ShopNest</span>
                 </Link>
 
-
-                {/* ==================================================
-                    DESKTOP NAVIGATION
-                ================================================== */}
-
+                {/* DESKTOP NAVIGATION */}
                 <div className="desktop-nav">
-
                     <Link
                         to="/"
                         className="nav-link"
@@ -99,17 +77,31 @@ function Navbar() {
                         Products
                     </Link>
 
+                    {/* CART */}
                     <Link
                         to="/cart"
                         className="nav-link cart-link"
                     >
                         🛒 Cart
-
                         <span className="cart-badge">
                             {cartCount}
                         </span>
                     </Link>
 
+                    {/* WISHLIST */}
+                    {isLoggedIn && (
+                        <Link
+                            to="/wishlist"
+                            className="nav-link wishlist-link"
+                        >
+                            ❤️ Wishlist
+                            <span className="wishlist-badge">
+                                {wishlistCount}
+                            </span>
+                        </Link>
+                    )}
+
+                    {/* MY ORDERS */}
                     {isLoggedIn && (
                         <Link
                             to="/orders"
@@ -118,37 +110,26 @@ function Navbar() {
                             My Orders
                         </Link>
                     )}
-
                 </div>
 
-
-                {/* ==================================================
-                    DESKTOP USER
-                ================================================== */}
-
+                {/* DESKTOP USER */}
                 <div className="desktop-user">
-
                     {isLoggedIn ? (
                         <div className="account-wrapper">
 
                             {/* ACCOUNT BUTTON */}
-
                             <button
                                 type="button"
                                 className="account-button"
                                 onClick={toggleAccount}
-                                aria-expanded={
-                                    accountOpen
-                                }
+                                aria-expanded={accountOpen}
                                 aria-label="Open account menu"
                             >
-
                                 <div className="user-avatar">
                                     👤
                                 </div>
 
                                 <div className="user-details">
-
                                     <span className="user-email">
                                         {currentUser?.email}
                                     </span>
@@ -156,37 +137,28 @@ function Navbar() {
                                     <span className="user-role">
                                         {currentUser?.role}
                                     </span>
-
                                 </div>
 
                                 <span
                                     className={`account-arrow ${
-                                        accountOpen
-                                            ? "open"
-                                            : ""
+                                        accountOpen ? "open" : ""
                                     }`}
                                 >
                                     ▾
                                 </span>
-
                             </button>
 
-
                             {/* ACCOUNT DROPDOWN */}
-
                             {accountOpen && (
                                 <div className="account-dropdown">
 
                                     {/* ACCOUNT HEADER */}
-
                                     <div className="account-dropdown-header">
-
                                         <div className="account-dropdown-avatar">
                                             👤
                                         </div>
 
                                         <div className="account-dropdown-user">
-
                                             <strong>
                                                 {currentUser?.email}
                                             </strong>
@@ -194,96 +166,79 @@ function Navbar() {
                                             <span>
                                                 {currentUser?.role}
                                             </span>
-
                                         </div>
-
                                     </div>
 
-
-                                    <div className="account-dropdown-divider"></div>
-
+                                    <div className="account-dropdown-divider" />
 
                                     {/* MY ORDERS */}
-
                                     <Link
                                         to="/orders"
                                         className="account-dropdown-item"
-                                        onClick={
-                                            closeMenu
-                                        }
+                                        onClick={closeMenu}
                                     >
                                         <span className="account-item-icon">
                                             📦
                                         </span>
+                                        <span>My Orders</span>
+                                    </Link>
 
-                                        <span>
-                                            My Orders
+                                    {/* WISHLIST */}
+                                    <Link
+                                        to="/wishlist"
+                                        className="account-dropdown-item"
+                                        onClick={closeMenu}
+                                    >
+                                        <span className="account-item-icon">
+                                            ❤️
+                                        </span>
+
+                                        <span>My Wishlist</span>
+
+                                        <span className="wishlist-badge">
+                                            {wishlistCount}
                                         </span>
                                     </Link>
 
-
                                     {/* MANAGE ADDRESSES */}
-
                                     <Link
                                         to="/addresses"
                                         className="account-dropdown-item"
-                                        onClick={
-                                            closeMenu
-                                        }
+                                        onClick={closeMenu}
                                     >
                                         <span className="account-item-icon">
                                             📍
                                         </span>
-
-                                        <span>
-                                            Manage Addresses
-                                        </span>
+                                        <span>Manage Addresses</span>
                                     </Link>
 
-
                                     {/* CHANGE PASSWORD */}
-
                                     <Link
                                         to="/change-password"
                                         className="account-dropdown-item"
-                                        onClick={
-                                            closeMenu
-                                        }
+                                        onClick={closeMenu}
                                     >
                                         <span className="account-item-icon">
                                             🔐
                                         </span>
-
-                                        <span>
-                                            Change Password
-                                        </span>
+                                        <span>Change Password</span>
                                     </Link>
 
-
-                                    <div className="account-dropdown-divider"></div>
-
+                                    <div className="account-dropdown-divider" />
 
                                     {/* LOGOUT */}
-
                                     <button
                                         type="button"
                                         className="account-dropdown-logout"
-                                        onClick={
-                                            handleLogout
-                                        }
+                                        onClick={handleLogout}
                                     >
                                         <span className="account-item-icon">
                                             ↪
                                         </span>
-
-                                        <span>
-                                            Logout
-                                        </span>
+                                        <span>Logout</span>
                                     </button>
-
                                 </div>
                             )}
-
                         </div>
                     ) : (
                         <>
@@ -302,23 +257,18 @@ function Navbar() {
                             </Link>
                         </>
                     )}
-
                 </div>
 
-
-                {/* ==================================================
-                    MOBILE HAMBURGER
-                ================================================== */}
-
+                {/* MOBILE HAMBURGER */}
                 <button
+                    type="button"
                     className={`hamburger ${
                         menuOpen ? "active" : ""
                     }`}
-                    onClick={() =>
-                        setMenuOpen(
-                            !menuOpen
-                        )
-                    }
+                    onClick={() => {
+                        setMenuOpen((current) => !current);
+                        setAccountOpen(false);
+                    }}
                     aria-label="Toggle navigation"
                     aria-expanded={menuOpen}
                 >
@@ -326,31 +276,22 @@ function Navbar() {
                     <span></span>
                     <span></span>
                 </button>
-
             </div>
 
-
-            {/* ==================================================
-                MOBILE MENU
-            ================================================== */}
-
+            {/* MOBILE MENU */}
             <div
                 className={`mobile-menu ${
                     menuOpen ? "open" : ""
                 }`}
             >
-
                 {/* MOBILE USER */}
-
                 {isLoggedIn && (
                     <div className="mobile-user">
-
                         <div className="mobile-user-avatar">
                             👤
                         </div>
 
                         <div>
-
                             <div className="mobile-user-email">
                                 {currentUser?.email}
                             </div>
@@ -358,15 +299,11 @@ function Navbar() {
                             <div className="mobile-user-role">
                                 {currentUser?.role}
                             </div>
-
                         </div>
-
                     </div>
                 )}
 
-
                 {/* HOME */}
-
                 <Link
                     to="/"
                     className="mobile-nav-link"
@@ -376,9 +313,7 @@ function Navbar() {
                     Home
                 </Link>
 
-
                 {/* PRODUCTS */}
-
                 <Link
                     to="/products"
                     className="mobile-nav-link"
@@ -388,16 +323,13 @@ function Navbar() {
                     Products
                 </Link>
 
-
                 {/* CART */}
-
                 <Link
                     to="/cart"
                     className="mobile-nav-link"
                     onClick={closeMenu}
                 >
                     <span>🛒</span>
-
                     Cart
 
                     <span className="mobile-cart-badge">
@@ -405,9 +337,23 @@ function Navbar() {
                     </span>
                 </Link>
 
+                {/* WISHLIST */}
+                {isLoggedIn && (
+                    <Link
+                        to="/wishlist"
+                        className="mobile-nav-link"
+                        onClick={closeMenu}
+                    >
+                        <span>❤️</span>
+                        Wishlist
+
+                        <span className="mobile-wishlist-badge">
+                            {wishlistCount}
+                        </span>
+                    </Link>
+                )}
 
                 {/* MY ORDERS */}
-
                 {isLoggedIn && (
                     <Link
                         to="/orders"
@@ -419,9 +365,7 @@ function Navbar() {
                     </Link>
                 )}
 
-
                 {/* MANAGE ADDRESSES */}
-
                 {isLoggedIn && (
                     <Link
                         to="/addresses"
@@ -433,9 +377,7 @@ function Navbar() {
                     </Link>
                 )}
 
-
                 {/* CHANGE PASSWORD */}
-
                 {isLoggedIn && (
                     <Link
                         to="/change-password"
@@ -447,14 +389,12 @@ function Navbar() {
                     </Link>
                 )}
 
-
-                <div className="mobile-menu-divider"></div>
-
+                <div className="mobile-menu-divider" />
 
                 {/* LOGOUT / LOGIN */}
-
                 {isLoggedIn ? (
                     <button
+                        type="button"
                         className="mobile-logout"
                         onClick={handleLogout}
                     >
@@ -481,9 +421,7 @@ function Navbar() {
                         </Link>
                     </>
                 )}
-
             </div>
-
         </nav>
     );
 }

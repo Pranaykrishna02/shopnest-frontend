@@ -33,6 +33,8 @@ import AddressForm from "./pages/AddressForm";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import ChangePassword from "./pages/ChangePassword";
+import ReviewPage from "./pages/ReviewPage";
+import Wishlist from "./pages/Wishlist";
 
 import "./App.css";
 
@@ -169,6 +171,17 @@ function AppContent() {
                         </ProtectedRoute>
                     }
                 />
+                
+{/* WISHLIST */}
+<Route
+    path="/wishlist"
+    element={
+        <ProtectedRoute>
+            <Wishlist />
+        </ProtectedRoute>
+    }
+/>
+
 
                 {/* CHECKOUT */}
                 <Route
@@ -311,6 +324,12 @@ function AppContent() {
                                 <AdminOrderDetails />
                             </AdminLayout>
                         </AdminRoute>
+                    }
+                />
+                <Route
+                    path="/products/:id/review"
+                    element={
+                    <ReviewPage />
                     }
                 />
 

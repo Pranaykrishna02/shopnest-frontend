@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { useCart } from "../context/CartContext";
 import { useAppContext } from "../context/Context";
+import { useWishlist } from "../context/WishlistContext";
 
 function ProductCard({ product }) {
     const navigate = useNavigate();
@@ -11,7 +12,14 @@ function ProductCard({ product }) {
     const { addToCart } = useCart();
     const { isLoggedIn } = useAppContext();
 
+    const {
+        addToWishlist,
+        removeFromWishlist,
+        isWishlisted
+    } = useWishlist();
+
     const [adding, setAdding] = useState(false);
+    const [wishlistLoading, setWishlistLoading] = useState(false);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
 
@@ -21,7 +29,9 @@ function ProductCard({ product }) {
 
     const productId = product._id;
     const isOutOfStock = Number(product.stock) < 1;
+    const wishlisted = isWishlisted(productId);
 
+    // ADD TO CART
     const handleAddToCart = async () => {
         if (!isLoggedIn) {
             navigate("/login");
@@ -64,24 +74,87 @@ function ProductCard({ product }) {
         }
     };
 
+    // ADD / REMOVE FROM WISHLIST
+    const handleWishlist = async () => {
+        if (!isLoggedIn) {
+            navigate("/login");
+            return;
+        }
+
+        if (!productId || wishlistLoading) {
+            return;
+        }
+
+        try {
+            setWishlistLoading(true);
+            setError("");
+            setMessage("");
+
+            if (wishlisted) {
+                await removeFromWishlist(productId);
+                setMessage("Product removed from Wishlist");
+            } else {
+                await addToWishlist(productId);
+                setMessage("Product added to Wishlist ❤️");
+            }
+        } catch (err) {
+            setError(err.message || "Wishlist update failed");
+        } finally {
+            setWishlistLoading(false);
+        }
+    };
+
     return (
         <article className="product-card">
-            <Link
-                to={`/products/${productId}`}
-                className="product-card-image-link"
-                aria-label={`View ${product.name}`}
-            >
-                <img
-                    className="product-card-image"
-                    src={
-                        product.image ||
-                        "https://via.placeholder.com/300?text=No+Image"
-                    }
-                    alt={product.name || "Product"}
-                    loading="lazy"
-                />
-            </Link>
 
+            {/* PRODUCT IMAGE */}
+            <div className="product-card-image-container">
+
+                <Link
+                    to={`/products/${productId}`}
+                    className="product-card-image-link"
+                    aria-label={`View ${product.name}`}
+                >
+                    <img
+                        className="product-card-image"
+                        src={
+                            product.image ||
+                            "https://via.placeholder.com/300?text=No+Image"
+                        }
+                        alt={product.name || "Product"}
+                        loading="lazy"
+                    />
+                </Link>
+
+                {/* WISHLIST HEART */}
+                <button
+                    type="button"
+                    className={`product-wishlist-heart ${
+                        wishlisted ? "active" : ""
+                    }`}
+                    onClick={handleWishlist}
+                    disabled={wishlistLoading || !productId}
+                    aria-label={
+                        wishlisted
+                            ? "Remove from Wishlist"
+                            : "Add to Wishlist"
+                    }
+                    aria-pressed={wishlisted}
+                    title={
+                        wishlisted
+                            ? "Remove from Wishlist"
+                            : "Add to Wishlist"
+                    }
+                >
+                    {wishlistLoading
+                        ? "…"
+                        : wishlisted
+                        ? "❤️"
+                        : "🤍"}
+                </button>
+            </div>
+
+            {/* PRODUCT CONTENT */}
             <div className="product-card-content">
                 <h3>{product.name || "Unnamed Product"}</h3>
 
@@ -112,6 +185,7 @@ function ProductCard({ product }) {
                     </div>
                 )}
 
+                {/* ACTIONS */}
                 <div className="product-card-actions">
                     <Link
                         to={`/products/${productId}`}
